@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Frontend / Node
+node_modules/
+frontend/dist/
+frontend/.svelte-kit/
+frontend/.next/
+frontend/build/
+
+# Environment
+.env
+.env.local
+*.env
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+.xml
+
+# Logs
+*.log

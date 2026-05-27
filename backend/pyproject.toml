@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cuqui"
+version = "0.1.0"
+description = "Voice-assisted cooking timer system — TFM project"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "websockets>=14.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.28",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+]
+asr = [
+    "faster-whisper>=1.0",
+]
+llm = [
+    "openai>=1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".."]
+asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests for domain logic",
+    "integration: Integration tests for API and WebSocket",
+    "nlu: NLU accuracy test set",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.coverage.run]
+source = ["cuqui"]
