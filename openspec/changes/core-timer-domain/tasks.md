@@ -32,8 +32,8 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Command Schema
 
-- [ ] 2.1 RED: Write `backend/tests/unit/domain/test_commands.py` — failing tests for Intent enum membership, per-intent payload validation, discriminated union, extras rejection
-- [ ] 2.2 GREEN: Create `backend/cuqui/domain/commands.py` — Intent enum, all 8 per-intent Pydantic payloads, CuquiCommand discriminated union with intent discriminator
+- [x] 2.1 RED: Write `backend/tests/unit/domain/test_commands.py` — failing tests for Intent enum membership, per-intent payload validation, discriminated union, extras rejection
+- [x] 2.2 GREEN: Create `backend/cuqui/domain/commands.py` — Intent enum, all 8 per-intent Pydantic payloads, CuquiCommand discriminated union with intent discriminator
 
 ## Phase 3: Rule-based Parser
 
