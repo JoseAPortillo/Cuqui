@@ -9,7 +9,7 @@
 | Chained PRs recommended | Yes |
 | Suggested split | PR 1 (Timer domain) → PR 2 (Command schema) → PR 3 (Parser) |
 | Delivery strategy | ask-on-risk |
-| Chain strategy | pending |
+| Chain strategy | feature-branch-chain |
 
 Decision needed before apply: Yes
 Chained PRs recommended: Yes
@@ -37,8 +37,8 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Rule-based Parser
 
-- [ ] 3.1 RED: Write `backend/tests/unit/domain/test_parser.py` — failing tests for all 8 intent patterns, first-match order, no-match→ParseError, empty/partial/ambiguous input
-- [ ] 3.2 GREEN: Create `backend/cuqui/domain/parser.py` — ParseError dataclass, TimerParser class with ordered regex list, parse() returning CuquiCommand | ParseError
+- [x] 3.1 RED: Write `backend/tests/unit/domain/test_parser.py` — failing tests for all 8 intent patterns, first-match order, no-match→ParseError, empty/partial/ambiguous input
+- [x] 3.2 GREEN: Create `backend/cuqui/domain/parser.py` — ParseError dataclass, TimerParser class with ordered regex list, parse() returning CuquiCommand | ParseError
 
 ## Phase 4: Wiring & Verification
 
