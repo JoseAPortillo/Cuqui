@@ -1,36 +1,33 @@
-"""Command schema — Intent enum and CuquiCommand discriminated union.
+"""Command schema — Intent enum and CuquiCommand frozen dataclasses.
 
 Provides:
-    Intent:         IntEnum of 8 voice intents (SYNC_FINISH_TIME deferred).
-    {Intent}Payload: Per-intent Pydantic v2 validation models.
-    CuquiCommand:   Discriminated union keyed by ``intent`` field.
+    Intent:             IntEnum of 8 voice intents (SYNC_FINISH_TIME deferred).
+    {Verb}TimerCommand: Per-intent frozen dataclass with ``__post_init__`` validation.
+    CuquiCommand:       ``Union`` type alias for type narrowing.
 
-Zero framework dependencies — only Pydantic v2 for validation.
+Zero framework dependencies — only Python stdlib.
 """
 
-import enum
-from typing import Annotated, Literal, Union
+from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+import enum
+from dataclasses import dataclass
+from typing import Union
 
 __all__ = [
-    "CancelTimerPayload",
+    "CancelTimerCommand",
     "CuquiCommand",
-    "ExtendTimerPayload",
+    "ExtendTimerCommand",
     "Intent",
-    "PauseTimerPayload",
-    "QueryTimerPayload",
-    "ReduceTimerPayload",
-    "RenameTimerPayload",
-    "ResumeTimerPayload",
-    "SetTimerPayload",
+    "PauseTimerCommand",
+    "QueryTimerCommand",
+    "ReduceTimerCommand",
+    "RenameTimerCommand",
+    "ResumeTimerCommand",
+    "SetTimerCommand",
 ]
 
-
-class _CommandBase(BaseModel):
-    """Base class enforcing strict schema — no extra fields allowed."""
-
-    model_config = ConfigDict(extra="forbid")
+# ── Intents ────────────────────────────────────────────────────────────────────
 
 
 class Intent(enum.IntEnum):
@@ -50,94 +47,139 @@ class Intent(enum.IntEnum):
     QUERY_TIMER = 8
 
 
-# ── Per-Intent Payloads ────────────────────────────────────────────────────────
+# ── Validation helpers ─────────────────────────────────────────────────────────
 
-_UnitLiteral = Literal["seconds", "minutes", "hours"]
+_VALID_UNITS = frozenset({"seconds", "minutes", "hours"})
 
 
-class SetTimerPayload(_CommandBase):
+def _validate_name(name: str | None) -> None:
+    """Raise ``ValueError`` if *name* exceeds 50 characters."""
+    if name is not None and len(name) > 50:
+        raise ValueError("name too long")
+
+
+def _validate_duration_positive(duration: int) -> None:
+    """Raise ``ValueError`` if *duration* is not positive."""
+    if duration <= 0:
+        raise ValueError("duration must be positive")
+
+
+def _validate_unit(unit: str | None) -> None:
+    """Raise ``ValueError`` if *unit* is not None or one of seconds/minutes/hours."""
+    if unit is not None and unit not in _VALID_UNITS:
+        raise ValueError(f"invalid unit: {unit!r}")
+
+
+# ── Per-Intent Commands ────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class SetTimerCommand:
     """Create a new timer with duration, optional unit, optional label."""
 
-    intent: Literal[Intent.SET_TIMER]
-    duration: int = Field(gt=0)
-    unit: _UnitLiteral | None = None
-    name: str | None = Field(default=None, max_length=50)
+    duration: int
+    unit: str | None = None
+    name: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_duration_positive(self.duration)
+        _validate_unit(self.unit)
+        _validate_name(self.name)
 
 
-class CancelTimerPayload(_CommandBase):
-    """Cancel an active timer (defaults to "last" if no name given)."""
+@dataclass(frozen=True)
+class CancelTimerCommand:
+    """Cancel an active timer (defaults to ``"last"`` if no name given)."""
 
-    intent: Literal[Intent.CANCEL_TIMER]
-    name: str = Field(default="last", max_length=50)
+    name: str = "last"
+
+    def __post_init__(self) -> None:
+        _validate_name(self.name)
 
 
-class PauseTimerPayload(_CommandBase):
+@dataclass(frozen=True)
+class PauseTimerCommand:
     """Pause a running timer."""
 
-    intent: Literal[Intent.PAUSE_TIMER]
-    name: str | None = Field(default=None, max_length=50)
+    name: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_name(self.name)
 
 
-class ResumeTimerPayload(_CommandBase):
+@dataclass(frozen=True)
+class ResumeTimerCommand:
     """Resume a paused timer."""
 
-    intent: Literal[Intent.RESUME_TIMER]
-    name: str | None = Field(default=None, max_length=50)
+    name: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_name(self.name)
 
 
-class ExtendTimerPayload(_CommandBase):
+@dataclass(frozen=True)
+class ExtendTimerCommand:
     """Add time to an existing timer."""
 
-    intent: Literal[Intent.EXTEND_TIMER]
-    duration: int = Field(gt=0)
-    unit: _UnitLiteral | None = None
+    duration: int
+    unit: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_duration_positive(self.duration)
+        _validate_unit(self.unit)
 
 
-class ReduceTimerPayload(_CommandBase):
+@dataclass(frozen=True)
+class ReduceTimerCommand:
     """Subtract time from an existing timer."""
 
-    intent: Literal[Intent.REDUCE_TIMER]
-    duration: int = Field(gt=0)
-    unit: _UnitLiteral | None = None
+    duration: int
+    unit: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_duration_positive(self.duration)
+        _validate_unit(self.unit)
 
 
-class RenameTimerPayload(_CommandBase):
+@dataclass(frozen=True)
+class RenameTimerCommand:
     """Rename an active timer (name is required)."""
 
-    intent: Literal[Intent.RENAME_TIMER]
-    name: str = Field(max_length=50)
+    name: str
+
+    def __post_init__(self) -> None:
+        _validate_name(self.name)
 
 
-class QueryTimerPayload(_CommandBase):
+@dataclass(frozen=True)
+class QueryTimerCommand:
     """Query the status of a timer. Without a name, returns all / last."""
 
-    intent: Literal[Intent.QUERY_TIMER]
-    name: str | None = Field(default=None, max_length=50)
+    name: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_name(self.name)
 
 
-# ── Discriminated Union ────────────────────────────────────────────────────────
+# ── Type Alias ─────────────────────────────────────────────────────────────────
 
-CuquiCommand = Annotated[
-    Union[
-        SetTimerPayload,
-        CancelTimerPayload,
-        PauseTimerPayload,
-        ResumeTimerPayload,
-        ExtendTimerPayload,
-        ReduceTimerPayload,
-        RenameTimerPayload,
-        QueryTimerPayload,
-    ],
-    Field(discriminator="intent"),
+
+CuquiCommand = Union[
+    SetTimerCommand,
+    CancelTimerCommand,
+    PauseTimerCommand,
+    ResumeTimerCommand,
+    ExtendTimerCommand,
+    ReduceTimerCommand,
+    RenameTimerCommand,
+    QueryTimerCommand,
 ]
-"""A validated voice command that can represent any of the 8 intents.
+"""A voice command that can represent any of the 8 intents.
 
 Usage::
 
-    from cuqui.domain.commands import CuquiCommand, Intent
-    from pydantic import TypeAdapter
+    from cuqui.domain.commands import CuquiCommand, SetTimerCommand
 
-    adapter = TypeAdapter(CuquiCommand)
-    cmd = adapter.validate_python({"intent": 1, "duration": 300, "name": "Pasta"})
-    isinstance(cmd, SetTimerPayload)  # True — type-narrowed
+    cmd: CuquiCommand = SetTimerCommand(duration=300, name="Pasta")
+    isinstance(cmd, SetTimerCommand)  # True — type-narrowed
 """

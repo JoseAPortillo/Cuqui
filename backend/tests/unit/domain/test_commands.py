@@ -1,36 +1,31 @@
-"""Tests for Intent enum and CuquiCommand discriminated union.
+"""Tests for Intent enum and CuquiCommand frozen dataclasses.
 
 Covers:
 - Intent enum membership and values (8 members, SYNC_FINISH_TIME deferred)
-- Per-intent payload validation (all 8 intents)
-- CuquiCommand discriminated union with extras rejection
-- Clean imports (no FastAPI or async framework packages)
+- Per-intent command validation (all 8 commands)
+- CuquiCommand type alias
+- Clean imports (no FastAPI, async framework packages, or Pydantic)
 """
 
 from __future__ import annotations
 
 import re
+import typing
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
 
 from cuqui.domain.commands import (
-    CancelTimerPayload,
+    CancelTimerCommand,
     CuquiCommand,
-    ExtendTimerPayload,
+    ExtendTimerCommand,
     Intent,
-    PauseTimerPayload,
-    QueryTimerPayload,
-    ReduceTimerPayload,
-    RenameTimerPayload,
-    ResumeTimerPayload,
-    SetTimerPayload,
+    PauseTimerCommand,
+    QueryTimerCommand,
+    ReduceTimerCommand,
+    RenameTimerCommand,
+    ResumeTimerCommand,
+    SetTimerCommand,
 )
-
-# TypeAdapter for the discriminated union (Annotated type alias cannot be
-# instantiated directly — TypeAdapter is the canonical Pydantic v2 approach).
-_cuqui_adapter = TypeAdapter(CuquiCommand)
-
 
 # ── Intent Enum ────────────────────────────────────────────────────────────────
 
@@ -102,238 +97,250 @@ class TestIntentValues:
         assert Intent.QUERY_TIMER == 8
 
 
-# ── SET_TIMER Payload ──────────────────────────────────────────────────────────
+# ── SET_TIMER Command ──────────────────────────────────────────────────────────
 
 
-class TestSetTimerPayload:
-    """SetTimerPayload SHALL validate duration (positive int), optional unit and name."""
+class TestSetTimerCommand:
+    """SetTimerCommand SHALL validate duration (positive int), optional unit and name."""
 
     def test_valid_full(self) -> None:
-        """GIVEN intent SET_TIMER, duration 300, unit "seconds", name "Pasta"
-        WHEN building a Command THEN model SHALL validate all fields.
+        """GIVEN duration 300, unit "seconds", name "Pasta"
+        WHEN building a Command THEN it SHALL validate all fields.
         """
-        cmd = SetTimerPayload(
-            intent=Intent.SET_TIMER,
-            duration=300,
-            unit="seconds",
-            name="Pasta",
-        )
-        assert cmd.intent == Intent.SET_TIMER
+        cmd = SetTimerCommand(duration=300, unit="seconds", name="Pasta")
         assert cmd.duration == 300
         assert cmd.unit == "seconds"
         assert cmd.name == "Pasta"
 
     def test_valid_minimal(self) -> None:
-        """GIVEN intent SET_TIMER, only duration
+        """GIVEN only duration
         WHEN building a Command THEN validation SHALL pass with defaults.
         """
-        cmd = SetTimerPayload(intent=Intent.SET_TIMER, duration=60)
+        cmd = SetTimerCommand(duration=60)
         assert cmd.duration == 60
         assert cmd.unit is None
         assert cmd.name is None
 
     def test_invalid_duration_negative(self) -> None:
-        """GIVEN intent SET_TIMER and duration -30 THEN validation SHALL fail."""
-        with pytest.raises(ValidationError):
-            SetTimerPayload(intent=Intent.SET_TIMER, duration=-30)
+        """GIVEN duration -30 THEN validation SHALL raise ValueError."""
+        with pytest.raises(ValueError, match="duration must be positive"):
+            SetTimerCommand(duration=-30)
 
     def test_invalid_duration_zero(self) -> None:
-        """GIVEN intent SET_TIMER and duration 0 THEN validation SHALL fail."""
-        with pytest.raises(ValidationError):
-            SetTimerPayload(intent=Intent.SET_TIMER, duration=0)
+        """GIVEN duration 0 THEN validation SHALL raise ValueError."""
+        with pytest.raises(ValueError, match="duration must be positive"):
+            SetTimerCommand(duration=0)
 
     def test_missing_duration_raises_error(self) -> None:
-        """GIVEN intent SET_TIMER with no duration THEN validation SHALL fail."""
-        with pytest.raises(ValidationError):
-            SetTimerPayload(intent=Intent.SET_TIMER)  # type: ignore[call-arg]
+        """GIVEN no duration THEN construction SHALL fail with TypeError."""
+        with pytest.raises(TypeError):
+            SetTimerCommand()  # type: ignore[call-arg]
 
     def test_invalid_unit_raises_error(self) -> None:
         """GIVEN unit "epochs" (not seconds/minutes/hours) THEN validation SHALL fail."""
-        with pytest.raises(ValidationError):
-            SetTimerPayload(intent=Intent.SET_TIMER, duration=300, unit="epochs")
+        with pytest.raises(ValueError, match="invalid unit"):
+            SetTimerCommand(duration=300, unit="epochs")
+
+    def test_name_too_long(self) -> None:
+        """GIVEN name longer than 50 chars THEN validation SHALL fail."""
+        with pytest.raises(ValueError, match="name too long"):
+            SetTimerCommand(duration=300, name="a" * 51)
 
 
-# ── CANCEL_TIMER Payload ───────────────────────────────────────────────────────
+# ── CANCEL_TIMER Command ───────────────────────────────────────────────────────
 
 
-class TestCancelTimerPayload:
-    """CancelTimerPayload SHALL accept optional name, defaulting to "last"."""
+class TestCancelTimerCommand:
+    """CancelTimerCommand SHALL accept optional name, defaulting to "last"."""
 
     def test_default_name_is_last(self) -> None:
-        """GIVEN CANCEL_TIMER with no name THEN name SHALL default to "last"."""
-        cmd = CancelTimerPayload(intent=Intent.CANCEL_TIMER)
+        """GIVEN no name THEN name SHALL default to "last"."""
+        cmd = CancelTimerCommand()
         assert cmd.name == "last"
 
     def test_explicit_name(self) -> None:
-        """GIVEN CANCEL_TIMER with name "Pasta" THEN name SHALL be "Pasta"."""
-        cmd = CancelTimerPayload(intent=Intent.CANCEL_TIMER, name="Pasta")
+        """GIVEN name "Pasta" THEN name SHALL be "Pasta"."""
+        cmd = CancelTimerCommand(name="Pasta")
         assert cmd.name == "Pasta"
 
+    def test_name_too_long(self) -> None:
+        """GIVEN name longer than 50 chars THEN validation SHALL fail."""
+        with pytest.raises(ValueError, match="name too long"):
+            CancelTimerCommand(name="a" * 51)
 
-# ── PAUSE_TIMER Payload ────────────────────────────────────────────────────────
+
+# ── PAUSE_TIMER Command ────────────────────────────────────────────────────────
 
 
-class TestPauseTimerPayload:
-    """PauseTimerPayload SHALL accept optional name."""
+class TestPauseTimerCommand:
+    """PauseTimerCommand SHALL accept optional name."""
 
     def test_without_name(self) -> None:
-        """GIVEN PAUSE_TIMER with no name THEN validation SHALL pass."""
-        cmd = PauseTimerPayload(intent=Intent.PAUSE_TIMER)
+        """GIVEN no name THEN validation SHALL pass."""
+        cmd = PauseTimerCommand()
         assert cmd.name is None
 
     def test_with_name(self) -> None:
-        """GIVEN PAUSE_TIMER with name "Pasta" THEN name SHALL be "Pasta"."""
-        cmd = PauseTimerPayload(intent=Intent.PAUSE_TIMER, name="Pasta")
+        """GIVEN name "Pasta" THEN name SHALL be "Pasta"."""
+        cmd = PauseTimerCommand(name="Pasta")
         assert cmd.name == "Pasta"
 
+    def test_name_too_long(self) -> None:
+        """GIVEN name longer than 50 chars THEN validation SHALL fail."""
+        with pytest.raises(ValueError, match="name too long"):
+            PauseTimerCommand(name="a" * 51)
 
-# ── RESUME_TIMER Payload ──────────────────────────────────────────────────────
+
+# ── RESUME_TIMER Command ──────────────────────────────────────────────────────
 
 
-class TestResumeTimerPayload:
-    """ResumeTimerPayload SHALL accept optional name."""
+class TestResumeTimerCommand:
+    """ResumeTimerCommand SHALL accept optional name."""
 
     def test_without_name(self) -> None:
-        cmd = ResumeTimerPayload(intent=Intent.RESUME_TIMER)
+        cmd = ResumeTimerCommand()
         assert cmd.name is None
 
     def test_with_name(self) -> None:
-        cmd = ResumeTimerPayload(intent=Intent.RESUME_TIMER, name="Pasta")
+        cmd = ResumeTimerCommand(name="Pasta")
         assert cmd.name == "Pasta"
 
+    def test_name_too_long(self) -> None:
+        with pytest.raises(ValueError, match="name too long"):
+            ResumeTimerCommand(name="a" * 51)
 
-# ── EXTEND_TIMER Payload ──────────────────────────────────────────────────────
+
+# ── EXTEND_TIMER Command ──────────────────────────────────────────────────────
 
 
-class TestExtendTimerPayload:
-    """ExtendTimerPayload SHALL validate duration (positive int), optional unit."""
+class TestExtendTimerCommand:
+    """ExtendTimerCommand SHALL validate duration (positive int), optional unit."""
 
     def test_valid_with_unit(self) -> None:
-        cmd = ExtendTimerPayload(
-            intent=Intent.EXTEND_TIMER,
-            duration=60,
-            unit="minutes",
-        )
+        cmd = ExtendTimerCommand(duration=60, unit="minutes")
         assert cmd.duration == 60
         assert cmd.unit == "minutes"
 
     def test_valid_without_unit(self) -> None:
-        cmd = ExtendTimerPayload(intent=Intent.EXTEND_TIMER, duration=30)
+        cmd = ExtendTimerCommand(duration=30)
         assert cmd.duration == 30
         assert cmd.unit is None
 
     def test_invalid_duration_negative(self) -> None:
-        with pytest.raises(ValidationError):
-            ExtendTimerPayload(intent=Intent.EXTEND_TIMER, duration=-10)
+        with pytest.raises(ValueError, match="duration must be positive"):
+            ExtendTimerCommand(duration=-10)
 
 
-# ── REDUCE_TIMER Payload ──────────────────────────────────────────────────────
+# ── REDUCE_TIMER Command ──────────────────────────────────────────────────────
 
 
-class TestReduceTimerPayload:
-    """ReduceTimerPayload SHALL validate duration (positive int), optional unit."""
+class TestReduceTimerCommand:
+    """ReduceTimerCommand SHALL validate duration (positive int), optional unit."""
 
     def test_valid_with_unit(self) -> None:
-        cmd = ReduceTimerPayload(
-            intent=Intent.REDUCE_TIMER,
-            duration=30,
-            unit="hours",
-        )
+        cmd = ReduceTimerCommand(duration=30, unit="hours")
         assert cmd.duration == 30
         assert cmd.unit == "hours"
 
     def test_valid_without_unit(self) -> None:
-        cmd = ReduceTimerPayload(intent=Intent.REDUCE_TIMER, duration=15)
+        cmd = ReduceTimerCommand(duration=15)
         assert cmd.duration == 15
         assert cmd.unit is None
 
     def test_invalid_duration_negative(self) -> None:
-        with pytest.raises(ValidationError):
-            ReduceTimerPayload(intent=Intent.REDUCE_TIMER, duration=-5)
+        with pytest.raises(ValueError, match="duration must be positive"):
+            ReduceTimerCommand(duration=-5)
 
 
-# ── RENAME_TIMER Payload ──────────────────────────────────────────────────────
+# ── RENAME_TIMER Command ──────────────────────────────────────────────────────
 
 
-class TestRenameTimerPayload:
-    """RenameTimerPayload SHALL require name (non-optional)."""
+class TestRenameTimerCommand:
+    """RenameTimerCommand SHALL require name (non-optional)."""
 
     def test_valid_name(self) -> None:
-        """GIVEN RENAME_TIMER with name "Rice" THEN name SHALL be "Rice"."""
-        cmd = RenameTimerPayload(intent=Intent.RENAME_TIMER, name="Rice")
+        """GIVEN name "Rice" THEN name SHALL be "Rice"."""
+        cmd = RenameTimerCommand(name="Rice")
         assert cmd.name == "Rice"
 
     def test_missing_name_raises_error(self) -> None:
-        """GIVEN RENAME_TIMER with no name THEN validation SHALL fail."""
-        with pytest.raises(ValidationError):
-            RenameTimerPayload(intent=Intent.RENAME_TIMER)  # type: ignore[call-arg]
+        """GIVEN no name THEN construction SHALL fail with TypeError."""
+        with pytest.raises(TypeError):
+            RenameTimerCommand()  # type: ignore[call-arg]
+
+    def test_name_too_long(self) -> None:
+        """GIVEN name longer than 50 chars THEN validation SHALL fail."""
+        with pytest.raises(ValueError, match="name too long"):
+            RenameTimerCommand(name="a" * 51)
 
 
-# ── QUERY_TIMER Payload ───────────────────────────────────────────────────────
+# ── QUERY_TIMER Command ───────────────────────────────────────────────────────
 
 
-class TestQueryTimerPayload:
-    """QueryTimerPayload SHALL accept optional name."""
+class TestQueryTimerCommand:
+    """QueryTimerCommand SHALL accept optional name."""
 
     def test_without_name(self) -> None:
-        cmd = QueryTimerPayload(intent=Intent.QUERY_TIMER)
+        cmd = QueryTimerCommand()
         assert cmd.name is None
 
     def test_with_name(self) -> None:
-        cmd = QueryTimerPayload(intent=Intent.QUERY_TIMER, name="Pasta")
+        cmd = QueryTimerCommand(name="Pasta")
         assert cmd.name == "Pasta"
 
+    def test_name_too_long(self) -> None:
+        with pytest.raises(ValueError, match="name too long"):
+            QueryTimerCommand(name="a" * 51)
 
-# ── CuquiCommand Discriminated Union ──────────────────────────────────────────
+
+# ── CuquiCommand Type Alias ────────────────────────────────────────────────────
 
 
-class TestCuquiCommand:
-    """CuquiCommand SHALL discriminate by intent field via TypeAdapter."""
+class TestCuquiCommandTypeAlias:
+    """CuquiCommand SHALL be a Union type alias covering all 8 command types."""
 
-    def test_set_timer_via_discriminated_union(self) -> None:
-        """GIVEN intent SET_TIMER WHEN using CuquiCommand THEN returns SetTimerPayload."""
-        cmd = _cuqui_adapter.validate_python(
-            {"intent": Intent.SET_TIMER, "duration": 300, "name": "Pasta"}
-        )
-        assert isinstance(cmd, SetTimerPayload)
-        assert cmd.duration == 300
+    def test_type_alias_is_union(self) -> None:
+        """CuquiCommand SHALL be a Union type."""
+        assert typing.get_origin(CuquiCommand) is typing.Union
 
-    def test_cancel_timer_via_union(self) -> None:
-        cmd = _cuqui_adapter.validate_python({"intent": Intent.CANCEL_TIMER})
-        assert isinstance(cmd, CancelTimerPayload)
-        assert cmd.name == "last"
+    def test_union_contains_all_commands(self) -> None:
+        """The Union SHALL include all 8 command types."""
+        args = typing.get_args(CuquiCommand)
+        assert SetTimerCommand in args
+        assert CancelTimerCommand in args
+        assert PauseTimerCommand in args
+        assert ResumeTimerCommand in args
+        assert ExtendTimerCommand in args
+        assert ReduceTimerCommand in args
+        assert RenameTimerCommand in args
+        assert QueryTimerCommand in args
 
-    def test_rename_timer_via_union(self) -> None:
-        cmd = _cuqui_adapter.validate_python(
-            {"intent": Intent.RENAME_TIMER, "name": "Rice"}
-        )
-        assert isinstance(cmd, RenameTimerPayload)
-        assert cmd.name == "Rice"
+    def test_union_exactly_eight_types(self) -> None:
+        """There SHALL be exactly 8 types in CuquiCommand."""
+        assert len(typing.get_args(CuquiCommand)) == 8
 
-    def test_extras_rejected(self) -> None:
-        """GIVEN an unknown field WHEN building CuquiCommand THEN validation fails."""
-        with pytest.raises(ValidationError):
-            _cuqui_adapter.validate_python(
-                {"intent": Intent.SET_TIMER, "duration": 300, "unknown": "x"}
-            )
+    def test_isinstance_narrowing_set_timer(self) -> None:
+        """GIVEN a SetTimerCommand WHEN isinstance THEN it SHALL match SetTimerCommand."""
+        cmd = SetTimerCommand(duration=300, name="Pasta")
+        assert isinstance(cmd, SetTimerCommand)
+        assert not isinstance(cmd, CancelTimerCommand)
 
-    def test_intent_int_value_also_accepted(self) -> None:
-        """CuquiCommand SHALL accept raw int values for intent (Pydantic native)."""
-        cmd = _cuqui_adapter.validate_python({"intent": 1, "duration": 300})
-        assert isinstance(cmd, SetTimerPayload)
-        assert cmd.intent == Intent.SET_TIMER
+    def test_isinstance_narrowing_cancel(self) -> None:
+        cmd = CancelTimerCommand()
+        assert isinstance(cmd, CancelTimerCommand)
+        assert not isinstance(cmd, SetTimerCommand)
 
 
 # ── Clean Imports ──────────────────────────────────────────────────────────────
 
 
 class TestCleanImports:
-    """Commands module SHALL NOT import FastAPI or async framework packages."""
+    """Commands module SHALL NOT import FastAPI, async frameworks, or Pydantic."""
 
-    FRAMEWORK_TOP_LEVEL = frozenset({"fastapi", "uvicorn", "starlette"})
+    FORBIDDEN_TOP_LEVEL = frozenset({"fastapi", "uvicorn", "starlette", "pydantic"})
 
-    def test_no_framework_imports(self) -> None:
-        """WHEN inspecting imports THEN no FastAPI/async packages SHALL be present."""
+    def test_no_forbidden_imports(self) -> None:
+        """WHEN inspecting imports THEN no forbidden packages SHALL be present."""
         import cuqui.domain.commands as mod
 
         source = mod.__spec__.loader.get_source(mod.__name__)  # type: ignore[union-attr]
@@ -341,6 +348,6 @@ class TestCleanImports:
         imports += re.findall(r"^\s*from\s+(\S+)", source, re.MULTILINE)
         for mod_name in imports:
             top = mod_name.split(".")[0]
-            assert top not in self.FRAMEWORK_TOP_LEVEL, (
-                f"Framework import found: {mod_name}"
+            assert top not in self.FORBIDDEN_TOP_LEVEL, (
+                f"Forbidden import found: {mod_name}"
             )
