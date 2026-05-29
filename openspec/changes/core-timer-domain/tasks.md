@@ -42,6 +42,6 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Wiring & Verification
 
-- [ ] 4.1 Modify `backend/cuqui/domain/__init__.py` — export all public symbols (Timer, TimerStatus, Intent, CuquiCommand, ParseError, TimerParser, create_timer)
+- [x] 4.1 Modify `backend/cuqui/domain/__init__.py` — export all public symbols (Timer, TimerStatus, Intent, CuquiCommand, ParseError, TimerParser, create_timer)
 - [x] 4.2 Create `backend/tests/unit/domain/__init__.py` — package init for test domain
-- [ ] 4.3 Run full test suite, confirm all ~60 tests pass, verify ≥90% branch coverage on domain/
+- [x] 4.3 Run full test suite, confirm all 143 tests pass, verify ≥90% branch coverage on domain/
