@@ -54,8 +54,8 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Integration — Full Suite
 
-- [ ] 4.1 Create `conftest.py` with fixtures (TestClient, TimerManager, SyncService)
-- [ ] 4.2 Integration: POST commands → GET timers → state verification
-- [ ] 4.3 Integration: WS connect + command POST → broadcast received
-- [ ] 4.4 Integration: Error scenarios (400 on bad text, 422 on domain error)
-- [ ] 4.5 Verify all 183 existing Phase 1 tests pass with no regressions
+- [x] 4.1 Create `conftest.py` with fixtures (TestClient, TimerManager, SyncService)
+- [x] 4.2 Integration: POST commands → GET timers → state verification
+- [x] 4.3 Integration: WS connect + command POST → broadcast received
+- [x] 4.4 Integration: Error scenarios (400 on bad text, 422 on domain error)
+- [x] 4.5 Verify all 257 existing tests pass with no regressions (273 total)
