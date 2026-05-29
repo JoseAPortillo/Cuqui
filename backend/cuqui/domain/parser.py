@@ -2,7 +2,7 @@
 
 Provides:
     ParseError:   Frozen dataclass carrying error message + original text.
-    TimerParser:  Class with ordered regex-list, ``.parse(text)``
+    TimerParser:  Class with ordered regex-list per language, ``.parse(text)``
                   returning ``CuquiCommand | ParseError``.
 
 Zero framework dependencies — only Python stdlib (``re``, ``dataclasses``).
@@ -11,7 +11,9 @@ Zero framework dependencies — only Python stdlib (``re``, ``dataclasses``).
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import ClassVar
 
 from cuqui.domain.commands import (
     CancelTimerCommand,
@@ -52,6 +54,15 @@ _UNIT_MULTIPLIER: dict[str, int] = {
     "second": 1,
     "minute": 60,
     "hour": 3600,
+    "segundo": 1,
+    "minuto": 60,
+    "hora": 3600,
+}
+
+_UNIT_ENGLISH: dict[str, str] = {
+    "segundo": "second",
+    "minuto": "minute",
+    "hora": "hour",
 }
 
 _UNIT_PLURAL: dict[str, str] = {
@@ -61,14 +72,22 @@ _UNIT_PLURAL: dict[str, str] = {
 }
 
 
+def _normalize_unit(unit_singular: str) -> str:
+    """Map a time-unit label (any supported language) to its English singular form.
+
+    Returns the input unchanged if no mapping exists (safe fallback).
+    """
+    return _UNIT_ENGLISH.get(unit_singular, unit_singular)
+
+
 def _to_seconds(number: int, unit_singular: str) -> int:
     """Convert *number* of *unit_singular* to total seconds."""
-    return number * _UNIT_MULTIPLIER.get(unit_singular, 1)
+    return number * _UNIT_MULTIPLIER.get(_normalize_unit(unit_singular), 1)
 
 
 def _pluralize(unit_singular: str) -> str:
-    """Return the plural form of a time-unit label."""
-    return _UNIT_PLURAL.get(unit_singular, unit_singular + "s")
+    """Return the plural form of a time-unit label (always English)."""
+    return _UNIT_PLURAL.get(_normalize_unit(unit_singular), unit_singular + "s")
 
 
 # ── Timer Parser ───────────────────────────────────────────────────────────────
@@ -80,8 +99,13 @@ class TimerParser:
     Pattern matching is **ordered** — the first intent whose regex matches
     wins.  If no pattern matches, a ``ParseError`` is returned (never raised).
 
-    Intent evaluation order
-    -----------------------
+    Parameters
+    ----------
+    lang:
+        Language code (``"en"`` or ``"es"``).  Defaults to ``"es"``.
+
+    Intent evaluation order (same for all languages)
+    -------------------------------------------------
     #. ``SET_TIMER``
     #. ``PAUSE_TIMER``      — evaluated BEFORE CANCEL so that utterances
     #. ``CANCEL_TIMER``       containing the word *cancel* (e.g. *"pause
@@ -92,9 +116,9 @@ class TimerParser:
     #. ``QUERY_TIMER``
     """
 
-    # ── Compiled regex patterns (module level, compiled once) ────────────
+    # ── English patterns ──────────────────────────────────────────────────
 
-    _SET_TIMER_RE = re.compile(
+    _SET_TIMER_EN = re.compile(
         r"(?:set\s+)?(?:a\s+)?"
         r"(?:timer\s+)?(?:for\s+)?"
         r"(\d+)\s*(minute|second|hour)s?\s*"
@@ -103,41 +127,41 @@ class TimerParser:
         re.IGNORECASE,
     )
 
-    _PAUSE_TIMER_RE = re.compile(
+    _PAUSE_TIMER_EN = re.compile(
         r"pause\s+(?:the\s+)?(?:(.+?)\s+)?timer",
         re.IGNORECASE,
     )
 
-    _CANCEL_TIMER_RE = re.compile(
+    _CANCEL_TIMER_EN = re.compile(
         r"cancel\s+(?:the\s+)?(?:(.+?)\s+)?timer",
         re.IGNORECASE,
     )
 
-    _RESUME_TIMER_RE = re.compile(
+    _RESUME_TIMER_EN = re.compile(
         r"resume\s+(?:the\s+)?(?:(.+?)\s+)?timer",
         re.IGNORECASE,
     )
 
-    _EXTEND_TIMER_RE = re.compile(
+    _EXTEND_TIMER_EN = re.compile(
         r"(?:add|extend)(?:\s+by)?\s+"
         r"(\d+)\s*(?:more\s+)?"
         r"(minute|second|hour)s?",
         re.IGNORECASE,
     )
 
-    _REDUCE_TIMER_RE = re.compile(
+    _REDUCE_TIMER_EN = re.compile(
         r"(?:reduce|subtract)(?:\s+by)?\s+"
         r"(\d+)\s*(?:more\s+)?"
         r"(minute|second|hour)s?",
         re.IGNORECASE,
     )
 
-    _RENAME_TIMER_RE = re.compile(
+    _RENAME_TIMER_EN = re.compile(
         r"rename\s+(?:timer\s+)?(?:to\s+)?(.+)",
         re.IGNORECASE,
     )
 
-    _QUERY_TIMER_RE = re.compile(
+    _QUERY_TIMER_EN = re.compile(
         r"(?:"
         r"how\s+(?:much|long)|"
         r"time\s+(?:left|remaining)|"
@@ -147,18 +171,85 @@ class TimerParser:
         re.IGNORECASE,
     )
 
-    def __init__(self) -> None:
-        # Ordered list of (compiled_regex, extractor_function).
-        self._patterns: list[tuple[re.Pattern, ...]] = [
-            (self._SET_TIMER_RE, self._build_set_timer),
-            (self._PAUSE_TIMER_RE, self._build_pause_timer),
-            (self._CANCEL_TIMER_RE, self._build_cancel_timer),
-            (self._RESUME_TIMER_RE, self._build_resume_timer),
-            (self._EXTEND_TIMER_RE, self._build_extend_timer),
-            (self._REDUCE_TIMER_RE, self._build_reduce_timer),
-            (self._RENAME_TIMER_RE, self._build_rename_timer),
-            (self._QUERY_TIMER_RE, self._build_query_timer),
-        ]
+    # ── Spanish patterns ──────────────────────────────────────────────────
+
+    _SET_TIMER_ES = re.compile(
+        r"(?:(?:configurar|poner|crear)\s+(?:un\s+)?)?"
+        r"(?:temporizador\s+)?(?:de\s+|para\s+)?"
+        r"(\d+)\s*(minuto|segundo|hora)s?\s*"
+        r"(?:temporizador\s+)?"
+        r"(?:(?:para|llamado)\s+(\w+))?",
+        re.IGNORECASE,
+    )
+
+    # PAUSE 1: pausar [el] temporizador [de] [name]
+    _PAUSE_TIMER_ES = re.compile(
+        r"paus(?:a|á|ar)\s+(?:el\s+)?temporizador(?:\s+(?:de\s+)?(.+))?",
+        re.IGNORECASE,
+    )
+    # PAUSE 2: pausar [el] [name] temporizador (ambiguous intent, name before keyword)
+    _PAUSE_TIMER_ES_NAME_FIRST = re.compile(
+        r"paus(?:a|á|ar)\s+(?:el\s+)?(.+?)\s+temporizador",
+        re.IGNORECASE,
+    )
+
+    # CANCEL 1: cancelar [el] temporizador [de] [name]
+    _CANCEL_TIMER_ES = re.compile(
+        r"cancel(?:a|á|ar)\s+(?:el\s+)?temporizador(?:\s+(?:de\s+)?(.+))?",
+        re.IGNORECASE,
+    )
+    # CANCEL 2: cancelar [el] [name] temporizador
+    _CANCEL_TIMER_ES_NAME_FIRST = re.compile(
+        r"cancel(?:a|á|ar)\s+(?:el\s+)?(.+?)\s+temporizador",
+        re.IGNORECASE,
+    )
+
+    # RESUME 1: reanudar [el] temporizador [de] [name]
+    _RESUME_TIMER_ES = re.compile(
+        r"reanud(?:a|á|ar)\s+(?:el\s+)?temporizador(?:\s+(?:de\s+)?(.+))?",
+        re.IGNORECASE,
+    )
+    # RESUME 2: reanudar [el] [name] temporizador
+    _RESUME_TIMER_ES_NAME_FIRST = re.compile(
+        r"reanud(?:a|á|ar)\s+(?:el\s+)?(.+?)\s+temporizador",
+        re.IGNORECASE,
+    )
+
+    _EXTEND_TIMER_ES = re.compile(
+        r"(?:agregar|añadir|extender)(?:le\s+)?\s*"
+        r"(\d+)\s*(?:más\s+)?"
+        r"(minuto|segundo|hora)s?",
+        re.IGNORECASE,
+    )
+
+    _REDUCE_TIMER_ES = re.compile(
+        r"(?:reducir|restar|quitar)(?:le\s+)?\s*"
+        r"(\d+)\s*(?:más\s+)?"
+        r"(minuto|segundo|hora)s?",
+        re.IGNORECASE,
+    )
+
+    _RENAME_TIMER_ES = re.compile(
+        r"renombrar\s+(?:temporizador\s+)?(?:a\s+)?(.+)",
+        re.IGNORECASE,
+    )
+
+    _QUERY_TIMER_ES = re.compile(
+        r"(?:"
+        r"cuánto\s+(?:tiempo\s+)?(?:falta|queda)|"
+        r"tiempo\s+(?:restante|que\s+queda)|"
+        r"cuándo\s+(?:termina|finaliza)|"
+        r"qué\s+(?:tiempo\s+)?(?:queda|resta)"
+        r")",
+        re.IGNORECASE,
+    )
+
+    LANGS: ClassVar[dict[str, list[tuple[re.Pattern, Callable[..., CuquiCommand]]]]] = {}
+
+    def __init__(self, lang: str = "es") -> None:
+        if lang not in self.LANGS:
+            raise ValueError(f"Unsupported language: {lang!r}")
+        self._patterns = self.LANGS[lang]
 
     # ── Public API ───────────────────────────────────────────────────────
 
@@ -187,7 +278,6 @@ class TimerParser:
                     )
                 if command is not None:
                     return command
-                # Extractor returned None → matched but validation failed.
                 return ParseError(
                     message="Missing required parameters",
                     original_text=text,
@@ -198,7 +288,7 @@ class TimerParser:
             original_text=text,
         )
 
-    # ── Intent extractors (one per pattern) ───────────────────────────────
+    # ── Intent extractors (shared across languages) ──────────────────────
 
     @staticmethod
     def _build_set_timer(match: re.Match) -> CuquiCommand:
@@ -219,7 +309,7 @@ class TimerParser:
         name = match.group(1)  # may be None
         if name is not None:
             return CancelTimerCommand(name=name)
-        return CancelTimerCommand()  # default name = "last"
+        return CancelTimerCommand()
 
     @staticmethod
     def _build_resume_timer(match: re.Match) -> CuquiCommand:
@@ -250,3 +340,32 @@ class TimerParser:
     @staticmethod
     def _build_query_timer(match: re.Match) -> CuquiCommand:
         return QueryTimerCommand()
+
+
+# ── Language pattern registry ──────────────────────────────────────────────────
+
+TimerParser.LANGS: dict[str, list[tuple[re.Pattern, Callable[..., CuquiCommand]]]] = {
+    "en": [
+        (TimerParser._SET_TIMER_EN, TimerParser._build_set_timer),
+        (TimerParser._PAUSE_TIMER_EN, TimerParser._build_pause_timer),
+        (TimerParser._CANCEL_TIMER_EN, TimerParser._build_cancel_timer),
+        (TimerParser._RESUME_TIMER_EN, TimerParser._build_resume_timer),
+        (TimerParser._EXTEND_TIMER_EN, TimerParser._build_extend_timer),
+        (TimerParser._REDUCE_TIMER_EN, TimerParser._build_reduce_timer),
+        (TimerParser._RENAME_TIMER_EN, TimerParser._build_rename_timer),
+        (TimerParser._QUERY_TIMER_EN, TimerParser._build_query_timer),
+    ],
+    "es": [
+        (TimerParser._SET_TIMER_ES, TimerParser._build_set_timer),
+        (TimerParser._PAUSE_TIMER_ES, TimerParser._build_pause_timer),
+        (TimerParser._PAUSE_TIMER_ES_NAME_FIRST, TimerParser._build_pause_timer),
+        (TimerParser._CANCEL_TIMER_ES, TimerParser._build_cancel_timer),
+        (TimerParser._CANCEL_TIMER_ES_NAME_FIRST, TimerParser._build_cancel_timer),
+        (TimerParser._RESUME_TIMER_ES, TimerParser._build_resume_timer),
+        (TimerParser._RESUME_TIMER_ES_NAME_FIRST, TimerParser._build_resume_timer),
+        (TimerParser._EXTEND_TIMER_ES, TimerParser._build_extend_timer),
+        (TimerParser._REDUCE_TIMER_ES, TimerParser._build_reduce_timer),
+        (TimerParser._RENAME_TIMER_ES, TimerParser._build_rename_timer),
+        (TimerParser._QUERY_TIMER_ES, TimerParser._build_query_timer),
+    ],
+}
