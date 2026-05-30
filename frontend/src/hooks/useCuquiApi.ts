@@ -53,6 +53,7 @@ export function useCuquiApi(): CuquiApiState {
       try {
         const data = JSON.parse(event.data)
         if (data.timers) {
+          console.log('[WS] timers update:', data.timers)
           setTimers((prev) => {
             prevTimersRef.current = prev
             return data.timers
@@ -127,7 +128,16 @@ export function useCuquiApi(): CuquiApiState {
       if (!res.ok) {
         const body = await res.json()
         setError(body.message ?? body.error ?? 'Error desconocido')
+        return
       }
+
+      const timer: Timer = await res.json()
+      console.log('[sendCommand] response:', timer)
+      console.log('[sendCommand] status:', timer.status)
+      setTimers((prev) => {
+        console.log('[sendCommand] prev state:', prev, '-> merging:', timer.id, timer.status)
+        return { ...prev, [timer.id]: timer }
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de red')
     }

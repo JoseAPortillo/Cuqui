@@ -98,10 +98,12 @@ def process_command(
             return manager.resume_timer(session_id, timer_id)
 
         case ExtendTimerCommand(duration=d, name=n):
+            if n is None:
+                timer = manager.add_timer(session_id, "timer", d)
+                return manager.start_timer(session_id, timer.id)
             timer_id = manager.find_timer_id_by_name(session_id, n)
             if timer_id is None:
-                display_name = n if n is not None else "timer"
-                timer = manager.add_timer(session_id, display_name, d)
+                timer = manager.add_timer(session_id, n, d)
                 return manager.start_timer(session_id, timer.id)
             return manager.extend_timer(session_id, timer_id, d)
 

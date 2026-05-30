@@ -194,6 +194,11 @@ class TimerParser:
         r"paus(?:a|á|ar)\s+(?:el\s+)?(.+?)\s+temporizador",
         re.IGNORECASE,
     )
+    # PAUSE 3: pausar [el|la] [name]  (short form, no "temporizador")
+    _PAUSE_TIMER_ES_ONLY_NAME = re.compile(
+        r"paus(?:a|á|ar)\s+(.+)",
+        re.IGNORECASE,
+    )
 
     # CANCEL 1: cancelar [el] temporizador [de] [name]
     _CANCEL_TIMER_ES = re.compile(
@@ -205,6 +210,11 @@ class TimerParser:
         r"cancel(?:a|á|ar)\s+(?:el\s+)?(.+?)\s+temporizador",
         re.IGNORECASE,
     )
+    # CANCEL 3: cancelar [el|la] [name]  (short form, no "temporizador")
+    _CANCEL_TIMER_ES_ONLY_NAME = re.compile(
+        r"cancel(?:a|á|ar)\s+(.+)",
+        re.IGNORECASE,
+    )
 
     # RESUME 1: reanudar [el] temporizador [de] [name]
     _RESUME_TIMER_ES = re.compile(
@@ -214,6 +224,11 @@ class TimerParser:
     # RESUME 2: reanudar [el] [name] temporizador
     _RESUME_TIMER_ES_NAME_FIRST = re.compile(
         r"reanud(?:a|á|ar)\s+(?:el\s+)?(.+?)\s+temporizador",
+        re.IGNORECASE,
+    )
+    # RESUME 3: reanudar [el|la] [name]  (short form, no "temporizador")
+    _RESUME_TIMER_ES_ONLY_NAME = re.compile(
+        r"reanud(?:a|á|ar)\s+(.+)",
         re.IGNORECASE,
     )
 
@@ -365,10 +380,13 @@ TimerParser.LANGS: dict[str, list[tuple[re.Pattern, Callable[..., CuquiCommand]]
         (TimerParser._SET_TIMER_ES, TimerParser._build_set_timer),
         (TimerParser._PAUSE_TIMER_ES, TimerParser._build_pause_timer),
         (TimerParser._PAUSE_TIMER_ES_NAME_FIRST, TimerParser._build_pause_timer),
+        (TimerParser._PAUSE_TIMER_ES_ONLY_NAME, TimerParser._build_pause_timer),
         (TimerParser._CANCEL_TIMER_ES, TimerParser._build_cancel_timer),
         (TimerParser._CANCEL_TIMER_ES_NAME_FIRST, TimerParser._build_cancel_timer),
+        (TimerParser._CANCEL_TIMER_ES_ONLY_NAME, TimerParser._build_cancel_timer),
         (TimerParser._RESUME_TIMER_ES, TimerParser._build_resume_timer),
         (TimerParser._RESUME_TIMER_ES_NAME_FIRST, TimerParser._build_resume_timer),
+        (TimerParser._RESUME_TIMER_ES_ONLY_NAME, TimerParser._build_resume_timer),
         (TimerParser._EXTEND_TIMER_ES, TimerParser._build_extend_timer),
         (TimerParser._REDUCE_TIMER_ES, TimerParser._build_reduce_timer),
         (TimerParser._RENAME_TIMER_ES, TimerParser._build_rename_timer),

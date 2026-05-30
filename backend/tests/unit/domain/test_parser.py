@@ -471,9 +471,10 @@ class TestTimerParserSpanishEdgeCases:
         assert result.name == "PASTA"
 
     def test_cancel_without_temporizador_keyword(self) -> None:
-        """GIVEN "cancelar pasta" (no "temporizador") → ParseError."""
+        """GIVEN "cancelar pasta" (no "temporizador") → CANCEL_TIMER name='pasta'."""
         result = self.parser.parse("cancelar pasta")
-        assert isinstance(result, ParseError)
+        assert isinstance(result, CancelTimerCommand)
+        assert result.name == "pasta"
 
     def test_pause_timer_no_name(self) -> None:
         """GIVEN "pausar temporizador" → PAUSE_TIMER name=None."""

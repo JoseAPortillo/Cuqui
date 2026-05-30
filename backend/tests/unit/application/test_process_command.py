@@ -160,11 +160,22 @@ class TestProcessCommandExtendTimer:
         self.manager = TimerManager()
         self.process = process_command
 
-    def test_extend_running_timer(self) -> None:
-        """GIVEN running Timer with 120s WHEN EXTEND_TIMER(30) THEN remaining=150."""
+    def test_extend_without_name_creates_new_timer(self) -> None:
+        """GIVEN running Timer WHEN EXTEND_TIMER(30, name=None) THEN new timer."""
         timer = self.manager.add_timer("s1", "Pasta", 120)
         self.manager.start_timer("s1", timer.id)
-        cmd = ExtendTimerCommand(duration=30)
+        cmd = ExtendTimerCommand(duration=30, name=None)
+        result = self.process(self.manager, "s1", cmd)
+        assert isinstance(result, Timer)
+        assert result.name == "timer"
+        assert result.remaining == 30
+        assert len(self.manager.get_all_timers("s1")) == 2
+
+    def test_extend_by_name_adds_time(self) -> None:
+        """GIVEN running Timer WHEN EXTEND_TIMER(30, name='Pasta') THEN remaining=150."""
+        timer = self.manager.add_timer("s1", "Pasta", 120)
+        self.manager.start_timer("s1", timer.id)
+        cmd = ExtendTimerCommand(duration=30, name="Pasta")
         result = self.process(self.manager, "s1", cmd)
         assert isinstance(result, Timer)
         assert result.remaining == 150
