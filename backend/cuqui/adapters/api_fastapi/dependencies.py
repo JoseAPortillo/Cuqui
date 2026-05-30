@@ -23,6 +23,7 @@ via ``app.dependency_overrides``.
 from __future__ import annotations
 
 from fastapi import Request
+from starlette.requests import HTTPConnection
 
 from cuqui.application.manage_timers import TimerManager
 from cuqui.application.sync_state import SyncService
@@ -35,16 +36,16 @@ __all__ = [
 ]
 
 
-def get_timer_manager(request: Request) -> TimerManager:
+def get_timer_manager(conn: HTTPConnection) -> TimerManager:
     """Return the ``TimerManager`` singleton from app state."""
-    return request.app.state.timer_manager
+    return conn.app.state.timer_manager
 
 
-def get_sync_service(request: Request) -> SyncService:
+def get_sync_service(conn: HTTPConnection) -> SyncService:
     """Return the ``SyncService`` singleton from app state."""
-    return request.app.state.sync_service
+    return conn.app.state.sync_service
 
 
-def get_intent_parser(request: Request) -> IntentParser:
+def get_intent_parser(conn: HTTPConnection) -> IntentParser:
     """Return the ``IntentParser`` singleton from app state."""
-    return request.app.state.intent_parser
+    return conn.app.state.intent_parser

@@ -54,7 +54,7 @@ class TestProcessCommandSetTimer:
         assert isinstance(result, Timer)
         assert result.name == "Pasta"
         assert result.duration == 300
-        assert result.status == TimerStatus.PENDING
+        assert result.status == TimerStatus.RUNNING
 
         # Verify it was stored
         stored = self.manager.get_timer("s1", result.id)
@@ -258,11 +258,14 @@ class TestProcessCommandErrors:
         with pytest.raises(ValueError, match="Cannot pause timer in completed state"):
             self.process(self.manager, "s1", cmd)
 
-    def test_extend_timer_unknown_is_not_found(self) -> None:
-        """GIVEN no timers in session WHEN EXTEND_TIMER THEN ValueError."""
-        cmd = ExtendTimerCommand(duration=30)
-        with pytest.raises(ValueError, match="No timers in session"):
-            self.process(self.manager, "empty-session", cmd)
+    def test_extend_timer_creates_timer_when_no_target(self) -> None:
+        """GIVEN no timers in session WHEN EXTEND_TIMER THEN timer is created."""
+        cmd = ExtendTimerCommand(duration=30, name="pasta")
+        result = self.process(self.manager, "s1", cmd)
+        assert isinstance(result, Timer)
+        assert result.name == "pasta"
+        assert result.duration == 30
+        assert result.status == TimerStatus.RUNNING
 
     def test_rename_in_empty_session_raises(self) -> None:
         """GIVEN empty session WHEN RENAME_TIMER THEN ValueError."""

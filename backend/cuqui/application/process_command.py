@@ -81,7 +81,8 @@ def process_command(
     match command:
         case SetTimerCommand(duration=d, name=n):
             name = n if n is not None else "last"
-            return manager.add_timer(session_id, name, d)
+            timer = manager.add_timer(session_id, name, d)
+            return manager.start_timer(session_id, timer.id)
 
         case CancelTimerCommand(name=n):
             timer_id = _resolve_timer_id(manager, session_id, n)
@@ -96,12 +97,16 @@ def process_command(
             timer_id = _resolve_timer_id(manager, session_id, n)
             return manager.resume_timer(session_id, timer_id)
 
-        case ExtendTimerCommand(duration=d):
-            timer_id = _resolve_timer_id(manager, session_id, None)
+        case ExtendTimerCommand(duration=d, name=n):
+            timer_id = manager.find_timer_id_by_name(session_id, n)
+            if timer_id is None:
+                display_name = n if n is not None else "timer"
+                timer = manager.add_timer(session_id, display_name, d)
+                return manager.start_timer(session_id, timer.id)
             return manager.extend_timer(session_id, timer_id, d)
 
-        case ReduceTimerCommand(duration=d):
-            timer_id = _resolve_timer_id(manager, session_id, None)
+        case ReduceTimerCommand(duration=d, name=n):
+            timer_id = _resolve_timer_id(manager, session_id, n)
             return manager.reduce_timer(session_id, timer_id, d)
 
         case RenameTimerCommand(name=n):

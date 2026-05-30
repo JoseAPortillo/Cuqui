@@ -1,0 +1,382 @@
+/* ── App Layout ────────────────────────────────────────── */
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Alert Banner ─────────────────────────────────────── */
+
+.alert-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.alert-banner__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #2e7d32;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 500;
+  animation: slideDown 0.3s ease-out;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.alert-banner__dismiss {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 4px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.alert-banner__dismiss:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Header ───────────────────────────────────────────── */
+
+.app-header {
+  text-align: center;
+  padding: 24px 0 20px;
+}
+
+.app-header__title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4fc3f7;
+  letter-spacing: -0.02em;
+}
+
+.app-header__subtitle {
+  font-size: 0.875rem;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* ── Main ─────────────────────────────────────────────── */
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Input Row ────────────────────────────────────────── */
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Command Input ────────────────────────────────────── */
+
+.command-input {
+  flex: 1;
+  display: flex;
+  gap: 0;
+}
+
+.command-input__field {
+  flex: 1;
+  padding: 10px 14px;
+  background: #1e1e3a;
+  border: 1px solid #333;
+  border-right: none;
+  border-radius: 10px 0 0 10px;
+  font-size: 0.9375rem;
+  color: #e0e0e0;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.command-input__field:focus {
+  border-color: #4fc3f7;
+}
+
+.command-input__field::placeholder {
+  color: #666;
+}
+
+.command-input__field:disabled {
+  opacity: 0.5;
+}
+
+.command-input__btn {
+  padding: 10px 18px;
+  background: #4fc3f7;
+  color: #0f0f23;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0 10px 10px 0;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.command-input__btn:hover:not(:disabled) {
+  background: #39b0e4;
+}
+
+.command-input__btn:disabled {
+  opacity: 0.4;
+}
+
+/* ── Voice Button ──────────────────────────────────────── */
+
+.voice-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #1e1e3a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: #888;
+  transition: border-color 0.15s, color 0.15s;
+  opacity: 0.5;
+}
+
+/* ── Error Banner ─────────────────────────────────────── */
+
+.error-banner {
+  background: #3e1a1a;
+  border: 1px solid #f44336;
+  color: #ef9a9a;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+}
+
+/* ── Dashboard ────────────────────────────────────────── */
+
+.dashboard {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+  .dashboard {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.dashboard-empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: #666;
+}
+
+.dashboard-empty__hint {
+  margin-top: 8px;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+/* ── Timer Card ───────────────────────────────────────── */
+
+.timer-card {
+  background: #1a1a3e;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid #2a2a4e;
+  transition: border-color 0.2s, opacity 0.3s;
+}
+
+.timer-card--running {
+  border-color: #2e7d32;
+}
+
+.timer-card--paused {
+  border-color: #e65100;
+}
+
+.timer-card--completed,
+.timer-card--cancelled {
+  opacity: 0.55;
+}
+
+.timer-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.timer-card__name {
+  font-weight: 600;
+  font-size: 1.0625rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer-card__status {
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.timer-card__status--running {
+  background: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+}
+
+.timer-card__status--paused {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ffb74d;
+}
+
+.timer-card__status--completed {
+  background: rgba(158, 158, 158, 0.2);
+  color: #bdbdbd;
+}
+
+.timer-card__status--cancelled {
+  background: rgba(244, 67, 54, 0.2);
+  color: #ef9a9a;
+}
+
+.timer-card__time {
+  font-size: 2.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-align: center;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.timer-card--running .timer-card__time {
+  color: #a5d6a7;
+}
+
+.timer-card--paused .timer-card__time {
+  color: #ffcc80;
+}
+
+.timer-card__progress {
+  height: 4px;
+  background: #2a2a4e;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.timer-card__progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.timer-card__progress-fill--running {
+  background: #4caf50;
+}
+
+.timer-card__progress-fill--paused {
+  background: #ff9800;
+}
+
+.timer-card__progress-fill--completed {
+  background: #757575;
+}
+
+.timer-card__progress-fill--cancelled {
+  background: #616161;
+}
+
+.timer-card__footer {
+  text-align: center;
+}
+
+.timer-card__footer-text {
+  font-size: 0.8125rem;
+  color: #888;
+}
+
+/* ── Debug Panel ──────────────────────────────────────── */
+
+.debug-panel {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 50;
+  font-size: 0.8125rem;
+}
+
+.debug-panel__toggle {
+  background: #1e1e3a;
+  border: 1px solid #333;
+  padding: 6px 14px;
+  border-radius: 8px;
+  color: #888;
+  font-size: 0.75rem;
+  transition: background 0.15s;
+}
+
+.debug-panel__toggle:hover {
+  background: #2a2a4e;
+}
+
+.debug-panel--open .debug-panel__toggle {
+  border-radius: 8px 8px 0 0;
+}
+
+.debug-panel__content {
+  background: #1e1e3a;
+  border: 1px solid #333;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.debug-panel__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.debug-panel__mono {
+  font-family: monospace;
+  color: #888;
+}

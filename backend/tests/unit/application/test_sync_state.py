@@ -24,7 +24,7 @@ class MockWebSocket:
         self.sent_messages: list[str] = []
         self.closed = False
 
-    def send_text(self, text: str) -> None:
+    async def send_text(self, text: str) -> None:
         self.sent_messages.append(text)
 
     def close(self) -> None:
@@ -79,7 +79,7 @@ class TestSyncServiceBroadcast:
 
         self.service = SyncService()
 
-    def test_broadcast_reaches_all_session_connections(self) -> None:
+    async def test_broadcast_reaches_all_session_connections(self) -> None:
         """GIVEN two connections in "s1" WHEN broadcast THEN both receive state."""
         ws1 = MockWebSocket()
         ws2 = MockWebSocket()
@@ -87,14 +87,14 @@ class TestSyncServiceBroadcast:
         self.service.register(ws2, "s1")
 
         state = {"timers": {"t1": {"name": "Pasta", "status": "running"}}}
-        self.service.broadcast("s1", state)
+        await self.service.broadcast("s1", state)
 
         assert len(ws1.sent_messages) == 1
         assert len(ws2.sent_messages) == 1
         data1 = json.loads(ws1.sent_messages[0])
         assert data1["timers"]["t1"]["name"] == "Pasta"
 
-    def test_broadcast_does_not_reach_other_sessions(self) -> None:
+    async def test_broadcast_does_not_reach_other_sessions(self) -> None:
         """GIVEN connections in "s1" and "s2" WHEN broadcast "s1" THEN "s2" does NOT receive."""
         ws1 = MockWebSocket()
         ws2 = MockWebSocket()
@@ -102,28 +102,28 @@ class TestSyncServiceBroadcast:
         self.service.register(ws2, "s2")
 
         state = {"timers": {}}
-        self.service.broadcast("s1", state)
+        await self.service.broadcast("s1", state)
 
         assert len(ws1.sent_messages) == 1  # received
         assert len(ws2.sent_messages) == 0  # NOT received
 
-    def test_broadcast_empty_session_is_noop(self) -> None:
+    async def test_broadcast_empty_session_is_noop(self) -> None:
         """GIVEN no connections in "unknown" WHEN broadcast THEN no error."""
         state = {"timers": {}}
         # Should not raise
-        self.service.broadcast("unknown", state)
+        await self.service.broadcast("unknown", state)
         # No crash means success
 
-    def test_broadcast_after_unregister_is_noop(self) -> None:
+    async def test_broadcast_after_unregister_is_noop(self) -> None:
         """GIVEN a connection registered THEN unregistered WHEN broadcast THEN no message sent."""
         ws = MockWebSocket()
         self.service.register(ws, "s1")
         self.service.unregister(ws)
 
-        self.service.broadcast("s1", {"timers": {}})
+        await self.service.broadcast("s1", {"timers": {}})
         assert len(ws.sent_messages) == 0
 
-    def test_disconnect_does_not_affect_others(self) -> None:
+    async def test_disconnect_does_not_affect_others(self) -> None:
         """GIVEN three connections, one disconnects WHEN broadcast THEN other two receive."""
         ws1 = MockWebSocket()
         ws2 = MockWebSocket()
@@ -135,7 +135,7 @@ class TestSyncServiceBroadcast:
         self.service.unregister(ws2)
 
         state = {"timers": {"t1": {"name": "Pasta"}}}
-        self.service.broadcast("s1", state)
+        await self.service.broadcast("s1", state)
 
         assert len(ws1.sent_messages) == 1
         assert len(ws2.sent_messages) == 0  # disconnected

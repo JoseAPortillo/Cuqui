@@ -66,7 +66,7 @@ class TestApiRoutes:
         assert data["name"] == "pasta"
         assert data["duration"] == 300
         assert data["remaining"] == 300
-        assert data["status"] == "pending"
+        assert data["status"] == "running"
         assert "created_at" in data
 
     def test_post_command_parse_error_returns_400(self) -> None:
@@ -84,14 +84,21 @@ class TestApiRoutes:
 
     def test_post_command_domain_error_returns_422(self) -> None:
         """GIVEN command causing domain error WHEN POST THEN 422 with domain error."""
-        # Create a pending timer
+        # Create timer — auto-starts → running
         resp = self.client.post(
             "/commands/text",
             json={"text": "set 1 minute timer for pasta", "session_id": "abc"},
         )
         assert resp.status_code == 200
 
-        # Try to pause it — PENDING cannot pause, domain error
+        # Pause first — works because timer is running
+        resp = self.client.post(
+            "/commands/text",
+            json={"text": "pause timer for pasta", "session_id": "abc"},
+        )
+        assert resp.status_code == 200
+
+        # Try to pause again — already paused → domain error
         resp = self.client.post(
             "/commands/text",
             json={"text": "pause timer for pasta", "session_id": "abc"},
@@ -124,7 +131,7 @@ class TestApiRoutes:
         assert isinstance(data, list)
         assert len(data) == 1
         assert data[0]["name"] == "pasta"
-        assert data[0]["status"] == "pending"
+        assert data[0]["status"] == "running"
 
     def test_get_timers_unknown_session_returns_empty(self) -> None:
         """GIVEN non-existent session WHEN GET /timers THEN 200 with empty array."""

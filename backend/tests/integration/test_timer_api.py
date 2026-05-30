@@ -61,7 +61,7 @@ class TestCommandTimerCycle:
         )
         assert resp.status_code == 200
         data = resp.json()
-        _assert_timer_dict(data, name="pasta", duration=300, remaining=300, status="pending")
+        _assert_timer_dict(data, name="pasta", duration=300, remaining=300, status="running")
 
         # ── GET confirms 1 timer ─────────────────────────────────────────────
         resp = client.get("/timers", params={"session_id": self.SESSION})
@@ -69,7 +69,7 @@ class TestCommandTimerCycle:
         timers = resp.json()
         assert isinstance(timers, list)
         assert len(timers) == 1
-        _assert_timer_dict(timers[0], name="pasta", duration=300, remaining=300, status="pending")
+        _assert_timer_dict(timers[0], name="pasta", duration=300, remaining=300, status="running")
 
     def test_create_two_timers_and_list_both(self, client: TestClient) -> None:
         """GIVEN two POST calls WHEN GET THEN both timers are returned."""
@@ -89,22 +89,15 @@ class TestCommandTimerCycle:
         names = {t["name"] for t in timers}
         assert names == {"pasta", "arroz"}
 
-    def test_pause_and_resume_timer(self, client: TestClient, timer_manager) -> None:
+    def test_pause_and_resume_timer(self, client: TestClient) -> None:
         """GIVEN a running timer WHEN pause THEN paused; WHEN resume THEN running."""
-        # Create timer via API → pending
+        # Create timer via API → auto-starts → running
         resp = client.post(
             "/commands/text",
             json={"text": "poner temporizador de 5 minutos para pasta", "session_id": self.SESSION},
         )
         assert resp.status_code == 200
-        timer_id = resp.json()["id"]
-
-        # Start the timer directly (no parser intent for "start")
-        timer_manager.start_timer(self.SESSION, timer_id)
-
-        # Verify timer is now running
-        resp = client.get("/timers", params={"session_id": self.SESSION})
-        assert resp.json()[0]["status"] == "running"
+        assert resp.json()["status"] == "running"
 
         # ── Pause via POST ───────────────────────────────────────────────────
         resp = client.post(
@@ -225,12 +218,12 @@ class TestWebSocketBroadcast:
 
     # ── Broadcast verification (via mock to avoid sync/async mismatch) ───────
 
-    def test_broadcast_format_contains_timers_key(self, sync_service: SyncService) -> None:
+    async def test_broadcast_format_contains_timers_key(self, sync_service: SyncService) -> None:
         """GIVEN registered mock WS WHEN broadcast THEN payload is JSON with timers."""
         mock_ws = MagicMock()
         sync_service.register(mock_ws, self.SESSION)
 
-        sync_service.broadcast(self.SESSION, {"timers": {"abc": {"name": "pasta"}}})
+        await sync_service.broadcast(self.SESSION, {"timers": {"abc": {"name": "pasta"}}})
 
         mock_ws.send_text.assert_called_once()
         payload = json.loads(mock_ws.send_text.call_args[0][0])

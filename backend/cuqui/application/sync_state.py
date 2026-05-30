@@ -8,6 +8,7 @@ decision lives at the orchestration layer.
 
 from __future__ import annotations
 
+import inspect
 import json
 from typing import Any
 
@@ -43,20 +44,24 @@ class SyncService:
         for conns in self._connections.values():
             conns.discard(ws)
 
-    def broadcast(self, session_id: str, state: dict[str, Any]) -> None:
+    async def broadcast(self, session_id: str, state: dict[str, Any]) -> None:
         """Send JSON-serialised *state* to all connections in *session_id*.
 
         Broadcast is best-effort: failed sends are silently ignored.
-        The caller is responsible for providing the right event-loop
-        context when using async connections.
+        Supports both async and sync ``send_text`` callables.
         """
         conns = self._connections.get(session_id)
         if not conns:
             return
 
         payload = json.dumps(state, default=str)
+        is_async = inspect.iscoroutinefunction
         for ws in list(conns):
             try:
-                ws.send_text(payload)
+                send = ws.send_text
+                if is_async(send):
+                    await send(payload)
+                else:
+                    send(payload)
             except Exception:
                 pass  # Best-effort: ignore send failures

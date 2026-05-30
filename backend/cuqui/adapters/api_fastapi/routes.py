@@ -23,6 +23,7 @@ Error handling
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -138,7 +139,7 @@ async def post_command(
         tid: _timer_to_dict(t)
         for tid, t in timer_manager.get_all_timers(body.session_id).items()
     }
-    sync_service.broadcast(body.session_id, {"timers": full_state})
+    await sync_service.broadcast(body.session_id, {"timers": full_state})
 
     return response_data
 
@@ -201,13 +202,36 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     Runs once at startup — stores ``TimerManager``, ``SyncService``,
     and ``IntentParser`` in ``app.state`` so that ``Depends()``
     functions in ``dependencies.py`` can retrieve them.
+    Also starts the background countdown tick.
     """
     from cuqui.adapters.parser_rules.adapter import TimerParserAdapter
 
     app.state.timer_manager = TimerManager()
     app.state.sync_service = SyncService()
     app.state.intent_parser = TimerParserAdapter(lang="es")
+
+    tick_task = asyncio.create_task(_run_tick(app))
     yield
+    tick_task.cancel()
+    try:
+        await tick_task
+    except asyncio.CancelledError:
+        pass
+
+
+async def _run_tick(app: FastAPI) -> None:
+    """Background task: decrement running timers every second and broadcast."""
+    while True:
+        await asyncio.sleep(1)
+        manager: TimerManager = app.state.timer_manager
+        sync: SyncService = app.state.sync_service
+        changed = manager.tick_all()
+        for sid in changed:
+            full = {
+                tid: _timer_to_dict(t)
+                for tid, t in manager.get_all_timers(sid).items()
+            }
+            await sync.broadcast(sid, {"timers": full})
 
 
 def create_app() -> FastAPI:

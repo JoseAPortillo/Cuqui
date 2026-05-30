@@ -119,14 +119,16 @@ class ResumeTimerCommand:
 
 @dataclass(frozen=True)
 class ExtendTimerCommand:
-    """Add time to an existing timer."""
+    """Add time to an existing timer (or create one if no target exists)."""
 
     duration: int
     unit: str | None = None
+    name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_duration_positive(self.duration)
         _validate_unit(self.unit)
+        _validate_name(self.name)
 
 
 @dataclass(frozen=True)
@@ -135,10 +137,12 @@ class ReduceTimerCommand:
 
     duration: int
     unit: str | None = None
+    name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_duration_positive(self.duration)
         _validate_unit(self.unit)
+        _validate_name(self.name)
 
 
 @dataclass(frozen=True)

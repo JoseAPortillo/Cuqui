@@ -9,7 +9,7 @@ Domain errors (e.g., invalid transitions) propagate to the caller.
 
 from __future__ import annotations
 
-from cuqui.domain.timer import Timer, create_timer
+from cuqui.domain.timer import Timer, TimerStatus, create_timer
 
 __all__ = [
     "TimerManager",
@@ -103,6 +103,35 @@ class TimerManager:
         updated = self._timers[session_id][timer_id].rename(name)
         self._timers[session_id][timer_id] = updated
         return updated
+
+    # ── Countdown tick ────────────────────────────────────────────────────────
+
+    def tick_all(self) -> dict[str, dict[str, Timer]]:
+        """Decrement all running timers by 1 second across every session.
+
+        Returns a map of ``session_id → {timer_id → updated_timer}``
+        for every timer whose state changed during this tick.
+        """
+        changed: dict[str, dict[str, Timer]] = {}
+        for sid, timers in self._timers.items():
+            for tid, timer in timers.items():
+                if timer.status != TimerStatus.RUNNING:
+                    continue
+                new_remaining = timer.remaining - 1
+                if new_remaining <= 0:
+                    updated = timer.complete()
+                else:
+                    updated = Timer(
+                        id=timer.id,
+                        name=timer.name,
+                        duration=timer.duration,
+                        remaining=new_remaining,
+                        status=timer.status,
+                        created_at=timer.created_at,
+                    )
+                self._timers[sid][tid] = updated
+                changed.setdefault(sid, {})[tid] = updated
+        return changed
 
     # ── Lookup helpers ───────────────────────────────────────────────────────
 
