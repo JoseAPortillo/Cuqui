@@ -180,7 +180,7 @@ class TimerParser:
         r"(?:temporizador\s+)?(?:de\s+|para\s+)?"
         r"(\d+)\s*(minuto|segundo|hora)?s?\s*"
         r"(?:temporizador\s+)?"
-        r"(?:(?:para|llamado)\s+(.+))?",
+        r"(?:(?:para|llamado|a)\s+(.+))?",
         re.IGNORECASE,
     )
 

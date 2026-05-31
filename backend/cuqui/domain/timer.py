@@ -147,7 +147,7 @@ class Timer:
         return Timer(
             id=self.id,
             name=self.name,
-            duration=self.duration,
+            duration=self.duration + seconds,
             remaining=self.remaining + seconds,
             status=self.status,
             created_at=self.created_at,
@@ -166,7 +166,7 @@ class Timer:
         return Timer(
             id=self.id,
             name=self.name,
-            duration=self.duration,
+            duration=max(self.duration - seconds, 0),
             remaining=max(self.remaining - seconds, 0),
             status=self.status,
             created_at=self.created_at,
