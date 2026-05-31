@@ -27,19 +27,21 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
-from fastapi import APIRouter, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, FastAPI, File, Form, Query, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 from cuqui.application.manage_timers import TimerManager
 from cuqui.application.process_command import process_command
 from cuqui.application.sync_state import SyncService
 from cuqui.ports.intent_parser import IntentParser
+from cuqui.ports.speech_to_text import SpeechToText
 from cuqui.domain.commands import CuquiCommand
 from cuqui.domain.parser import ParseError
 from cuqui.domain.timer import Timer
 
 from cuqui.adapters.api_fastapi.dependencies import (
     get_intent_parser,
+    get_speech_to_text,
     get_sync_service,
     get_timer_manager,
 )
@@ -144,6 +146,106 @@ async def post_command(
     return response_data
 
 
+# ── POST /commands/audio ─────────────────────────────────────────────────────
+
+
+@router.post(
+    "/commands/audio",
+    responses={
+        200: {"model": TimerResponse, "description": "Timer state"},
+        400: {"description": "Parse or transcription failure"},
+        422: {"model": DomainErrorResponse, "description": "Domain error"},
+    },
+)
+async def post_audio_command(
+    audio: UploadFile = File(..., description="Audio file (WAV, WebM, etc.)"),
+    session_id: str = Form(..., description="Session identifier"),
+    timer_manager: TimerManager = Depends(get_timer_manager),
+    intent_parser: IntentParser = Depends(get_intent_parser),
+    sync_service: SyncService = Depends(get_sync_service),
+    speech_to_text: SpeechToText = Depends(get_speech_to_text),
+) -> Any:
+    """Accept an audio recording, transcribe, parse, and execute.
+
+    Steps
+    -----
+    1. Read audio bytes from the uploaded file.
+    2. Transcribe via ``SpeechToText`` adapter.
+    3. Parse the transcribed text via ``IntentParser``.
+    4. Route via ``process_command`` → ``TimerManager``.
+    5. Broadcast full session state to WS clients.
+    6. Return the timer result.
+    """
+    # 1. Read audio
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "empty_audio", "message": "No audio data received"},
+        )
+
+    # 2. Transcribe
+    try:
+        text = await speech_to_text.transcribe(audio_bytes)
+    except Exception as exc:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "transcription_failed",
+                "message": f"Speech recognition failed: {exc}",
+            },
+        )
+
+    if not text:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "empty_transcription",
+                "message": "Speech recognition returned no text",
+            },
+        )
+
+    # 3. Parse
+    parsed = intent_parser.parse(text)
+    if isinstance(parsed, ParseError):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "parse_error",
+                "message": parsed.message,
+                "original_text": parsed.original_text,
+                "transcribed_text": text,
+            },
+        )
+
+    # 4. Execute
+    try:
+        result = process_command(timer_manager, session_id, parsed)
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=422,
+            content={"error": "domain_error", "message": str(exc)},
+        )
+
+    # 5. Build response
+    response_data: Any
+    if isinstance(result, Timer):
+        response_data = _timer_to_dict(result)
+    elif isinstance(result, dict):
+        response_data = {tid: _timer_to_dict(t) for tid, t in result.items()}
+    else:
+        response_data = {"status": "ok"}
+
+    # 6. Broadcast
+    full_state = {
+        tid: _timer_to_dict(t)
+        for tid, t in timer_manager.get_all_timers(session_id).items()
+    }
+    await sync_service.broadcast(session_id, {"timers": full_state})
+
+    return response_data
+
+
 # ── GET /timers ───────────────────────────────────────────────────────────────
 
 
@@ -204,11 +306,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     functions in ``dependencies.py`` can retrieve them.
     Also starts the background countdown tick.
     """
+    import os
+
+    from cuqui.adapters.asr import SpeechToTextRouter
+    from cuqui.adapters.asr_faster_whisper import FasterWhisperAdapter
+    from cuqui.adapters.asr_openai import OpenAIWhisperAdapter
     from cuqui.adapters.parser_rules.adapter import TimerParserAdapter
 
     app.state.timer_manager = TimerManager()
     app.state.sync_service = SyncService()
     app.state.intent_parser = TimerParserAdapter(lang="es")
+
+    faster_whisper = FasterWhisperAdapter(model_size="tiny", language="es")
+    openai_asr = OpenAIWhisperAdapter(
+        language="es",
+    ) if os.getenv("OPENAI_API_KEY") else None
+    app.state.speech_to_text = SpeechToTextRouter(
+        primary=faster_whisper,
+        fallback=openai_asr,
+    )
 
     tick_task = asyncio.create_task(_run_tick(app))
     yield

@@ -20,6 +20,7 @@ interface CuquiApiState {
   connectionStatus: ConnectionStatus
   alerts: TimerAlert[]
   sendCommand: (text: string) => Promise<void>
+  sendAudio: (audioBlob: Blob) => Promise<void>
   dismissAlert: (timerId: string) => void
   error: string | null
 }
@@ -143,9 +144,34 @@ export function useCuquiApi(): CuquiApiState {
     }
   }, [])
 
+  const sendAudio = useCallback(async (audioBlob: Blob) => {
+    setError(null)
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.wav')
+      formData.append('session_id', sessionId.current)
+
+      const res = await fetch('/commands/audio', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const body = await res.json()
+        setError(body.message ?? body.error ?? 'Error de transcripción')
+        return
+      }
+
+      const timer: Timer = await res.json()
+      setTimers((prev) => ({ ...prev, [timer.id]: timer }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error de red')
+    }
+  }, [])
+
   const dismissAlert = useCallback((timerId: string) => {
     setAlerts((current) => current.filter((a) => a.timerId !== timerId))
   }, [])
 
-  return { timers, connectionStatus, alerts, sendCommand, dismissAlert, error }
+  return { timers, connectionStatus, alerts, sendCommand, sendAudio, dismissAlert, error }
 }

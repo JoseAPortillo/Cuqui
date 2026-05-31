@@ -164,8 +164,22 @@
   border-radius: 10px;
   font-size: 0.875rem;
   color: #888;
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.voice-btn:not(:disabled) {
+  opacity: 1;
+}
+
+.voice-btn:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voice-btn--recording {
+  background: #3e1a1a;
+  border-color: #f44336;
+  color: #ef9a9a;
 }
 
 /* ── Error Banner ─────────────────────────────────────── */

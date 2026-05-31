@@ -28,9 +28,11 @@ from starlette.requests import HTTPConnection
 from cuqui.application.manage_timers import TimerManager
 from cuqui.application.sync_state import SyncService
 from cuqui.ports.intent_parser import IntentParser
+from cuqui.ports.speech_to_text import SpeechToText
 
 __all__ = [
     "get_intent_parser",
+    "get_speech_to_text",
     "get_sync_service",
     "get_timer_manager",
 ]
@@ -49,3 +51,8 @@ def get_sync_service(conn: HTTPConnection) -> SyncService:
 def get_intent_parser(conn: HTTPConnection) -> IntentParser:
     """Return the ``IntentParser`` singleton from app state."""
     return conn.app.state.intent_parser
+
+
+def get_speech_to_text(conn: HTTPConnection) -> SpeechToText:
+    """Return the ``SpeechToText`` singleton from app state."""
+    return conn.app.state.speech_to_text

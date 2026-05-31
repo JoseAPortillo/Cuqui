@@ -15,7 +15,7 @@ function getSessionId(): string {
 }
 
 export default function App() {
-  const { timers, connectionStatus, alerts, sendCommand, dismissAlert, error } = useCuquiApi()
+  const { timers, connectionStatus, alerts, sendCommand, sendAudio, dismissAlert, error } = useCuquiApi()
   const sessionId = getSessionId()
 
   return (
@@ -30,7 +30,7 @@ export default function App() {
       <main className="app-main">
         <div className="input-row">
           <CommandInput onSend={sendCommand} disabled={connectionStatus !== 'connected'} />
-          <VoiceButton />
+          <VoiceButton onAudio={sendAudio} disabled={connectionStatus !== 'connected'} />
         </div>
 
         {error && (
