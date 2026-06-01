@@ -49,7 +49,7 @@ class Intent(enum.IntEnum):
 
 # ── Validation helpers ─────────────────────────────────────────────────────────
 
-_VALID_UNITS = frozenset({"seconds", "minutes", "hours"})
+_VALID_UNITS = frozenset({"seconds", "minutes", "hours", "days"})
 
 
 def _validate_name(name: str | None) -> None:

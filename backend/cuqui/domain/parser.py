@@ -54,21 +54,27 @@ _UNIT_MULTIPLIER: dict[str, int] = {
     "second": 1,
     "minute": 60,
     "hour": 3600,
+    "day": 86400,
     "segundo": 1,
     "minuto": 60,
     "hora": 3600,
+    "día": 86400,
+    "dia": 86400,
 }
 
 _UNIT_ENGLISH: dict[str, str] = {
     "segundo": "second",
     "minuto": "minute",
     "hora": "hour",
+    "día": "day",
+    "dia": "day",
 }
 
 _UNIT_PLURAL: dict[str, str] = {
     "second": "seconds",
     "minute": "minutes",
     "hour": "hours",
+    "day": "days",
 }
 
 
@@ -87,7 +93,8 @@ def _to_seconds(number: int, unit_singular: str) -> int:
 
 def _pluralize(unit_singular: str) -> str:
     """Return the plural form of a time-unit label (always English)."""
-    return _UNIT_PLURAL.get(_normalize_unit(unit_singular), unit_singular + "s")
+    english = _normalize_unit(unit_singular)
+    return _UNIT_PLURAL.get(english, english + "s")
 
 
 # ── Timer Parser ───────────────────────────────────────────────────────────────
@@ -178,7 +185,7 @@ class TimerParser:
     _SET_TIMER_ES = re.compile(
         r"(?:(?:configur(?:ar|á|a)|pon(?:e|é|er)?|crear|set(?:eá|ear))\s+(?:un\s+)?)?"
         r"(?:temporizador\s+)?(?:de\s+|para\s+)?"
-        r"(\d+)\s*(minuto|segundo|hora)?s?\s*"
+        r"(\d+)\s*(minuto|segundo|hora|d(?:í|i)a)?s?\s*"
         r"(?:temporizador\s+)?"
         r"(?:(?:para|llamado|a)\s+(.+))?",
         re.IGNORECASE,
@@ -233,17 +240,18 @@ class TimerParser:
     )
 
     _EXTEND_TIMER_ES = re.compile(
-        r"(?:agregar|añadir|anadir|extender)(?:le\s+)?\s*"
+        r"(?:agreg(?:ar|á|a)|añad(?:ir|í|e)|anad(?:ir|í|e)|extiende|extender)"
+        r"(?:le\s+)?\s*"
         r"(\d+)\s*(?:más\s+)?"
-        r"(minuto|segundo|hora)s?\s*"
+        r"(minuto|segundo|hora|d(?:í|i)a)s?\s*"
         r"(?:(?:a|para|al)\s+(.+))?",
         re.IGNORECASE,
     )
 
     _REDUCE_TIMER_ES = re.compile(
-        r"(?:reducir|restar|quitar)(?:le\s+)?\s*"
+        r"(?:reduc(?:ir|í|e)|rest(?:ar|á|a)|quit(?:ar|á|a))(?:le\s+)?\s*"
         r"(\d+)\s*(?:más\s+)?"
-        r"(minuto|segundo|hora)s?\s*"
+        r"(minuto|segundo|hora|d(?:í|i)a)s?\s*"
         r"(?:(?:a|para|al)\s+(.+))?",
         re.IGNORECASE,
     )
