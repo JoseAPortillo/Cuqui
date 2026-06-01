@@ -25,6 +25,7 @@ __all__ = [
     "CommandRequest",
     "DomainErrorResponse",
     "ParseErrorResponse",
+    "TimerActionRequest",
     "TimerListResponse",
     "TimerResponse",
 ]
@@ -34,6 +35,12 @@ class CommandRequest(BaseModel):
     """Body contract for ``POST /commands/text``."""
 
     text: str
+    session_id: str
+
+
+class TimerActionRequest(BaseModel):
+    """Body contract for timer control endpoints (pause/resume/cancel)."""
+
     session_id: str
 
 

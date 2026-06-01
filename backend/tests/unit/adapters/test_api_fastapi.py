@@ -6,6 +6,9 @@ Covers:
 - GET /timers: 200 with timers array
 - GET /timers: 200 with empty array for unknown session
 - GET /timers: 422 on missing session_id
+- POST /timers/{timer_id}/pause: 200 on pause, 404 unknown timer, 422 on invalid state
+- POST /timers/{timer_id}/resume: 200 on resume, 404 unknown timer, 422 on invalid state
+- POST /timers/{timer_id}/cancel: 200 on cancel, 404 unknown timer
 - WS /ws/session/{session_id}: connect successfully
 """
 
@@ -194,3 +197,251 @@ class TestApiRoutes:
         """GIVEN connected WS WHEN disconnected THEN no error."""
         with self.client.websocket_connect("/ws/session/abc") as websocket:
             pass  # exiting the context manager disconnects gracefully
+
+    # ── POST /timers/{timer_id}/pause ───────────────────────────────────────────
+
+
+    def test_pause_timer_returns_200_and_paused(self) -> None:
+        """GIVEN running timer WHEN POST /timers/{id}/pause THEN 200 with paused status."""
+        create = self.client.post(
+            "/commands/text",
+            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
+        )
+        assert create.status_code == 200
+        timer_id = create.json()["id"]
+
+        response = self.client.post(
+            f"/timers/{timer_id}/pause",
+            json={"session_id": "abc"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "paused"
+        assert data["id"] == timer_id
+        assert data["name"] == "pasta"
+
+    def test_pause_unknown_timer_returns_404(self) -> None:
+        """GIVEN non-existent timer_id WHEN POST /timers/{id}/pause THEN 404."""
+        response = self.client.post(
+            "/timers/nonexistent/pause",
+            json={"session_id": "abc"},
+        )
+        assert response.status_code == 404
+        data = response.json()
+        assert data["error"] == "not_found"
+
+    def test_pause_already_paused_timer_returns_422(self) -> None:
+        """GIVEN paused timer WHEN POST /timers/{id}/pause THEN 422 domain error."""
+        create = self.client.post(
+            "/commands/text",
+            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
+        )
+        timer_id = create.json()["id"]
+
+        # Pause first
+        pause = self.client.post(
+            f"/timers/{timer_id}/pause",
+            json={"session_id": "abc"},
+        )
+        assert pause.status_code == 200
+
+        # Pause again → invalid transition
+        response = self.client.post(
+            f"/timers/{timer_id}/pause",
+            json={"session_id": "abc"},
+        )
+        assert response.status_code == 422
+        assert response.json()["error"] == "domain_error"
+
+    def test_pause_missing_session_id_returns_422(self) -> None:
+        """GIVEN no session_id in body WHEN POST /timers/{id}/pause THEN 422."""
+        response = self.client.post(
+            "/timers/some-id/pause",
+            json={},
+        )
+        assert response.status_code == 422
+
+    # ── POST /timers/{timer_id}/resume ──────────────────────────────────────────
+
+
+    def test_resume_timer_returns_200_and_running(self) -> None:
+        """GIVEN paused timer WHEN POST /timers/{id}/resume THEN 200 with running status."""
+        create = self.client.post(
+            "/commands/text",
+            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
+        )
+        timer_id = create.json()["id"]
+
+        # Pause first
+        self.client.post(
+            f"/timers/{timer_id}/pause",
+            json={"session_id": "abc"},
+        )
+
+        # Resume
+        response = self.client.post(
+            f"/timers/{timer_id}/resume",
+            json={"session_id": "abc"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "running"
+        assert response.json()["id"] == timer_id
+
+    def test_resume_unknown_timer_returns_404(self) -> None:
+        """GIVEN non-existent timer_id WHEN POST /timers/{id}/resume THEN 404."""
+        response = self.client.post(
+            "/timers/nonexistent/resume",
+            json={"session_id": "abc"},
+        )
+        assert response.status_code == 404
+        assert response.json()["error"] == "not_found"
+
+    def test_resume_running_timer_returns_422(self) -> None:
+        """GIVEN running timer WHEN POST /timers/{id}/resume THEN 422 domain error."""
+        create = self.client.post(
+            "/commands/text",
+            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
+        )
+        timer_id = create.json()["id"]
+
+        # Resume a running timer → invalid transition
+        response = self.client.post(
+            f"/timers/{timer_id}/resume",
+            json={"session_id": "abc"},
+        )
+        assert response.status_code == 422
+        assert response.json()["error"] == "domain_error"
+
+    # ── POST /timers/{timer_id}/cancel ──────────────────────────────────────────
+
+
+    def test_cancel_timer_returns_200_and_cancelled(self) -> None:
+        """GIVEN running timer WHEN POST /timers/{id}/cancel THEN 200 with cancelled status."""
+        create = self.client.post(
+            "/commands/text",
+            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
+        )
+        timer_id = create.json()["id"]
+
+        response = self.client.post(
+            f"/timers/{timer_id}/cancel",
+            json={"session_id": "abc"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "cancelled"
+        assert response.json()["id"] == timer_id
+
+    def test_cancel_unknown_timer_returns_404(self) -> None:
+        """GIVEN non-existent timer_id WHEN POST /timers/{id}/cancel THEN 404."""
+        response = self.client.post(
+            "/timers/nonexistent/cancel",
+            json={"session_id": "abc"},
+        )
+        assert response.status_code == 404
+        assert response.json()["error"] == "not_found"
+
+    def test_cancel_paused_timer_returns_200(self) -> None:
+        """GIVEN paused timer WHEN POST /timers/{id}/cancel THEN 200 (cancel is a no-op on paused)."""
+        create = self.client.post(
+            "/commands/text",
+            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
+        )
+        timer_id = create.json()["id"]
+
+        # Pause first
+        self.client.post(
+            f"/timers/{timer_id}/pause",
+            json={"session_id": "abc"},
+        )
+
+        # Cancel from paused → valid transition
+        response = self.client.post(
+            f"/timers/{timer_id}/cancel",
+            json={"session_id": "abc"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "cancelled"
+
+    # ── POST /timers/{timer_id}/* — WS broadcast ──────────────────────────────
+
+
+    def test_pause_broadcasts_via_websocket(self) -> None:
+        """GIVEN running timer WHEN pause via REST THEN WS receives state broadcast."""
+        from unittest.mock import MagicMock
+        import json
+
+        mock_ws = MagicMock()
+        self.sync_service.register(mock_ws, "abc")
+
+        create = self.client.post(
+            "/commands/text",
+            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
+        )
+        timer_id = create.json()["id"]
+        mock_ws.reset_mock()
+
+        self.client.post(
+            f"/timers/{timer_id}/pause",
+            json={"session_id": "abc"},
+        )
+
+        mock_ws.send_text.assert_called_once()
+        payload = json.loads(mock_ws.send_text.call_args[0][0])
+        assert "timers" in payload
+        assert timer_id in payload["timers"]
+        assert payload["timers"][timer_id]["status"] == "paused"
+
+    def test_resume_broadcasts_via_websocket(self) -> None:
+        """GIVEN paused timer WHEN resume via REST THEN WS receives state broadcast."""
+        from unittest.mock import MagicMock
+        import json
+
+        mock_ws = MagicMock()
+        self.sync_service.register(mock_ws, "abc")
+
+        create = self.client.post(
+            "/commands/text",
+            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
+        )
+        timer_id = create.json()["id"]
+
+        # Pause first
+        self.client.post(
+            f"/timers/{timer_id}/pause",
+            json={"session_id": "abc"},
+        )
+        mock_ws.reset_mock()
+
+        # Resume
+        self.client.post(
+            f"/timers/{timer_id}/resume",
+            json={"session_id": "abc"},
+        )
+
+        mock_ws.send_text.assert_called_once()
+        payload = json.loads(mock_ws.send_text.call_args[0][0])
+        assert payload["timers"][timer_id]["status"] == "running"
+
+    def test_cancel_broadcasts_via_websocket(self) -> None:
+        """GIVEN running timer WHEN cancel via REST THEN WS receives state broadcast."""
+        from unittest.mock import MagicMock
+        import json
+
+        mock_ws = MagicMock()
+        self.sync_service.register(mock_ws, "abc")
+
+        create = self.client.post(
+            "/commands/text",
+            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
+        )
+        timer_id = create.json()["id"]
+        mock_ws.reset_mock()
+
+        self.client.post(
+            f"/timers/{timer_id}/cancel",
+            json={"session_id": "abc"},
+        )
+
+        mock_ws.send_text.assert_called_once()
+        payload = json.loads(mock_ws.send_text.call_args[0][0])
+        assert payload["timers"][timer_id]["status"] == "cancelled"

@@ -49,6 +49,7 @@ from cuqui.adapters.api_fastapi.schemas import (
     CommandRequest,
     DomainErrorResponse,
     ParseErrorResponse,
+    TimerActionRequest,
     TimerResponse,
 )
 
@@ -268,6 +269,165 @@ async def get_timers(
     """
     timers = timer_manager.get_all_timers(session_id)
     return [_timer_to_dict(t) for t in timers.values()]
+
+
+# ── POST /timers/{timer_id}/pause ─────────────────────────────────────────────
+
+
+@router.post(
+    "/timers/{timer_id}/pause",
+    responses={
+        200: {"model": TimerResponse, "description": "Paused timer state"},
+        404: {"description": "Timer not found"},
+        422: {"model": DomainErrorResponse, "description": "Invalid transition"},
+    },
+)
+async def pause_timer(
+    timer_id: str,
+    body: TimerActionRequest,
+    timer_manager: TimerManager = Depends(get_timer_manager),
+    sync_service: SyncService = Depends(get_sync_service),
+) -> Any:
+    """Pause a running timer, broadcast state, return the updated timer.
+
+    Steps
+    -----
+    1. Retrieve the timer via ``TimerManager.pause_timer()``.
+    2. Catch ``KeyError`` → 404 (timer not found).
+    3. Catch ``ValueError`` → 422 (invalid state transition).
+    4. Broadcast full session state to all WebSocket clients.
+    5. Return the updated timer dict.
+    """
+    try:
+        updated = timer_manager.pause_timer(body.session_id, timer_id)
+    except KeyError:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error": "not_found",
+                "message": f"Timer {timer_id!r} not found in session {body.session_id!r}",
+            },
+        )
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=422,
+            content={"error": "domain_error", "message": str(exc)},
+        )
+
+    full_state = {
+        tid: _timer_to_dict(t)
+        for tid, t in timer_manager.get_all_timers(body.session_id).items()
+    }
+    await sync_service.broadcast(body.session_id, {"timers": full_state})
+
+    return _timer_to_dict(updated)
+
+
+# ── POST /timers/{timer_id}/resume ────────────────────────────────────────────
+
+
+@router.post(
+    "/timers/{timer_id}/resume",
+    responses={
+        200: {"model": TimerResponse, "description": "Resumed timer state"},
+        404: {"description": "Timer not found"},
+        422: {"model": DomainErrorResponse, "description": "Invalid transition"},
+    },
+)
+async def resume_timer(
+    timer_id: str,
+    body: TimerActionRequest,
+    timer_manager: TimerManager = Depends(get_timer_manager),
+    sync_service: SyncService = Depends(get_sync_service),
+) -> Any:
+    """Resume a paused timer, broadcast state, return the updated timer.
+
+    Steps
+    -----
+    1. Retrieve the timer via ``TimerManager.resume_timer()``.
+    2. Catch ``KeyError`` → 404 (timer not found).
+    3. Catch ``ValueError`` → 422 (invalid state transition).
+    4. Broadcast full session state to all WebSocket clients.
+    5. Return the updated timer dict.
+    """
+    try:
+        updated = timer_manager.resume_timer(body.session_id, timer_id)
+    except KeyError:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error": "not_found",
+                "message": f"Timer {timer_id!r} not found in session {body.session_id!r}",
+            },
+        )
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=422,
+            content={"error": "domain_error", "message": str(exc)},
+        )
+
+    full_state = {
+        tid: _timer_to_dict(t)
+        for tid, t in timer_manager.get_all_timers(body.session_id).items()
+    }
+    await sync_service.broadcast(body.session_id, {"timers": full_state})
+
+    return _timer_to_dict(updated)
+
+
+# ── POST /timers/{timer_id}/cancel ────────────────────────────────────────────
+
+
+@router.post(
+    "/timers/{timer_id}/cancel",
+    responses={
+        200: {"model": TimerResponse, "description": "Cancelled timer state"},
+        404: {"description": "Timer not found"},
+        422: {"model": DomainErrorResponse, "description": "Invalid transition"},
+    },
+)
+async def cancel_timer(
+    timer_id: str,
+    body: TimerActionRequest,
+    timer_manager: TimerManager = Depends(get_timer_manager),
+    sync_service: SyncService = Depends(get_sync_service),
+) -> Any:
+    """Cancel an active timer, broadcast state, return the updated timer.
+
+    ``Timer.cancel()`` is a no-op on completed or already-cancelled timers
+    (never raises), but we still guard ``ValueError`` for consistency.
+
+    Steps
+    -----
+    1. Retrieve the timer via ``TimerManager.cancel_timer()``.
+    2. Catch ``KeyError`` → 404 (timer not found).
+    3. Catch ``ValueError`` → 422 (invalid state transition).
+    4. Broadcast full session state to all WebSocket clients.
+    5. Return the updated timer dict.
+    """
+    try:
+        updated = timer_manager.cancel_timer(body.session_id, timer_id)
+    except KeyError:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error": "not_found",
+                "message": f"Timer {timer_id!r} not found in session {body.session_id!r}",
+            },
+        )
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=422,
+            content={"error": "domain_error", "message": str(exc)},
+        )
+
+    full_state = {
+        tid: _timer_to_dict(t)
+        for tid, t in timer_manager.get_all_timers(body.session_id).items()
+    }
+    await sync_service.broadcast(body.session_id, {"timers": full_state})
+
+    return _timer_to_dict(updated)
 
 
 # ── WS /ws/session/{session_id} ───────────────────────────────────────────────
