@@ -3,9 +3,13 @@ import { TimerCard } from './TimerCard'
 
 interface TimerDashboardProps {
   timers: Record<string, Timer>
+  onPause?: (timerId: string) => void
+  onResume?: (timerId: string) => void
+  onCancel?: (timerId: string) => void
+  loadingTimers?: Record<string, boolean>
 }
 
-export function TimerDashboard({ timers }: TimerDashboardProps) {
+export function TimerDashboard({ timers, onPause, onResume, onCancel, loadingTimers }: TimerDashboardProps) {
   const entries = Object.values(timers)
 
   if (entries.length === 0) {
@@ -22,7 +26,14 @@ export function TimerDashboard({ timers }: TimerDashboardProps) {
   return (
     <div className="dashboard">
       {entries.map((timer) => (
-        <TimerCard key={timer.id} timer={timer} />
+        <TimerCard
+          key={timer.id}
+          timer={timer}
+          onPause={onPause}
+          onResume={onResume}
+          onCancel={onCancel}
+          disabled={loadingTimers?.[timer.id] ?? false}
+        />
       ))}
     </div>
   )

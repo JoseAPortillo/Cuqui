@@ -23,6 +23,10 @@ interface CuquiApiState {
   sendAudio: (audioBlob: Blob) => Promise<void>
   dismissAlert: (timerId: string) => void
   error: string | null
+  pauseTimer: (timerId: string) => Promise<void>
+  resumeTimer: (timerId: string) => Promise<void>
+  cancelTimer: (timerId: string) => Promise<void>
+  loadingTimers: Record<string, boolean>
 }
 
 export function useCuquiApi(): CuquiApiState {
@@ -32,6 +36,7 @@ export function useCuquiApi(): CuquiApiState {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
   const [alerts, setAlerts] = useState<TimerAlert[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [loadingTimers, setLoadingTimers] = useState<Record<string, boolean>>({})
   const prevTimersRef = useRef<Record<string, Timer>>({})
 
   const connectWs = useCallback(() => {
@@ -55,10 +60,7 @@ export function useCuquiApi(): CuquiApiState {
         const data = JSON.parse(event.data)
         if (data.timers) {
           console.log('[WS] timers update:', data.timers)
-          setTimers((prev) => {
-            prevTimersRef.current = prev
-            return data.timers
-          })
+          setTimers(data.timers)
         }
       } catch {
         console.warn('WS: invalid message', event.data)
@@ -103,6 +105,9 @@ export function useCuquiApi(): CuquiApiState {
 
   useEffect(() => {
     const prev = prevTimersRef.current
+    // Update ref NOW so subsequent renders compare against this state
+    prevTimersRef.current = timers
+
     const newAlerts: TimerAlert[] = []
 
     for (const [id, timer] of Object.entries(timers)) {
@@ -173,5 +178,53 @@ export function useCuquiApi(): CuquiApiState {
     setAlerts((current) => current.filter((a) => a.timerId !== timerId))
   }, [])
 
-  return { timers, connectionStatus, alerts, sendCommand, sendAudio, dismissAlert, error }
+  const timerAction = useCallback(
+    async (timerId: string, action: 'pause' | 'resume' | 'cancel') => {
+      setError(null)
+      setLoadingTimers((prev) => ({ ...prev, [timerId]: true }))
+      try {
+        const res = await fetch(`/timers/${timerId}/${action}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId.current }),
+        })
+
+        if (!res.ok) {
+          const body = await res.json()
+          setError(body.message ?? body.error ?? `Error al ${action === 'pause' ? 'pausar' : action === 'resume' ? 'reanudar' : 'cancelar'}`)
+          return
+        }
+
+        const timer: Timer = await res.json()
+        setTimers((prev) => ({ ...prev, [timer.id]: timer }))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error de red')
+      } finally {
+        setLoadingTimers((prev) => {
+          const next = { ...prev }
+          delete next[timerId]
+          return next
+        })
+      }
+    },
+    [],
+  )
+
+  const pauseTimer = useCallback((timerId: string) => timerAction(timerId, 'pause'), [timerAction])
+  const resumeTimer = useCallback((timerId: string) => timerAction(timerId, 'resume'), [timerAction])
+  const cancelTimer = useCallback((timerId: string) => timerAction(timerId, 'cancel'), [timerAction])
+
+  return {
+    timers,
+    connectionStatus,
+    alerts,
+    sendCommand,
+    sendAudio,
+    dismissAlert,
+    error,
+    pauseTimer,
+    resumeTimer,
+    cancelTimer,
+    loadingTimers,
+  }
 }

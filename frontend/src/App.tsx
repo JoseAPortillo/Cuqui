@@ -15,7 +15,7 @@ function getSessionId(): string {
 }
 
 export default function App() {
-  const { timers, connectionStatus, alerts, sendCommand, sendAudio, dismissAlert, error } = useCuquiApi()
+  const { timers, connectionStatus, alerts, sendCommand, sendAudio, dismissAlert, error, pauseTimer, resumeTimer, cancelTimer, loadingTimers } = useCuquiApi()
   const sessionId = getSessionId()
 
   return (
@@ -39,7 +39,13 @@ export default function App() {
           </div>
         )}
 
-        <TimerDashboard timers={timers} />
+        <TimerDashboard
+          timers={timers}
+          onPause={pauseTimer}
+          onResume={resumeTimer}
+          onCancel={cancelTimer}
+          loadingTimers={loadingTimers}
+        />
       </main>
 
       <DebugPanel

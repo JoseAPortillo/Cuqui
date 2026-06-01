@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useRef, useEffect, type FormEvent } from 'react'
 
 interface CommandInputProps {
   onSend: (text: string) => void
@@ -7,6 +7,15 @@ interface CommandInputProps {
 
 export function CommandInput({ onSend, disabled }: CommandInputProps) {
   const [text, setText] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-focus on desktop; skip on touch devices to avoid virtual keyboard pop
+  useEffect(() => {
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches
+    if (!isTouchDevice && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [])
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -19,6 +28,7 @@ export function CommandInput({ onSend, disabled }: CommandInputProps) {
   return (
     <form className="command-input" onSubmit={handleSubmit}>
       <input
+        ref={inputRef}
         className="command-input__field"
         type="text"
         value={text}

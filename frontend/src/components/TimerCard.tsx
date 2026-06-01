@@ -2,6 +2,10 @@ import type { Timer } from '../types/timer'
 
 interface TimerCardProps {
   timer: Timer
+  onPause?: (timerId: string) => void
+  onResume?: (timerId: string) => void
+  onCancel?: (timerId: string) => void
+  disabled?: boolean
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -34,7 +38,7 @@ function progressPercent(timer: Timer): number {
   return Math.max(0, Math.min(100, ((timer.duration - timer.remaining) / timer.duration) * 100))
 }
 
-export function TimerCard({ timer }: TimerCardProps) {
+export function TimerCard({ timer, onPause, onResume, onCancel, disabled }: TimerCardProps) {
   const pct = progressPercent(timer)
   const isComplete = timer.status === 'completed'
   const isCancelled = timer.status === 'cancelled'
@@ -59,6 +63,38 @@ export function TimerCard({ timer }: TimerCardProps) {
           style={{ width: `${pct}%` }}
         />
       </div>
+
+      {!faded && (onPause || onResume || onCancel) && (
+        <div className="timer-card__actions">
+          {timer.status === 'running' && onPause && (
+            <button
+              className="timer-card__btn timer-card__btn--pause"
+              onClick={() => onPause(timer.id)}
+              disabled={disabled}
+            >
+              Pausar
+            </button>
+          )}
+          {timer.status === 'paused' && onResume && (
+            <button
+              className="timer-card__btn timer-card__btn--resume"
+              onClick={() => onResume(timer.id)}
+              disabled={disabled}
+            >
+              Reanudar
+            </button>
+          )}
+          {onCancel && (
+            <button
+              className="timer-card__btn timer-card__btn--cancel"
+              onClick={() => onCancel(timer.id)}
+              disabled={disabled}
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="timer-card__footer">
         {faded ? (

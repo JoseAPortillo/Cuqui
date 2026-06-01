@@ -22,6 +22,13 @@ const STATUS_LABEL: Record<ConnectionStatus, string> = {
 export function DebugPanel({ connectionStatus, timerCount, sessionId }: DebugPanelProps) {
   const [open, setOpen] = useState(false)
 
+  // In production, hide the panel unless ?debug=true or #debug is in the URL
+  if (import.meta.env.PROD) {
+    const url = new URL(window.location.href)
+    const hasDebug = url.searchParams.has('debug') || url.hash.includes('debug')
+    if (!hasDebug) return null
+  }
+
   return (
     <div className={`debug-panel ${open ? 'debug-panel--open' : ''}`}>
       <button className="debug-panel__toggle" onClick={() => setOpen((o) => !o)}>
