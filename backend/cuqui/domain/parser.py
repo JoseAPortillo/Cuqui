@@ -278,7 +278,7 @@ class TimerParser:
         Returns the first matching ``CuquiCommand``, or a ``ParseError``
         if no pattern matches or required parameters are missing.
         """
-        stripped = text.strip()
+        stripped = text.strip().rstrip(".,!?;:")
         if not stripped:
             return ParseError(
                 message="No matching intent",

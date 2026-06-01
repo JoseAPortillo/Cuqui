@@ -186,7 +186,7 @@ async def post_audio_command(
 
     # 2. Transcribe
     try:
-        text = await speech_to_text.transcribe(audio_bytes)
+        text = await speech_to_text.transcribe(audio_bytes, audio.content_type)
     except Exception as exc:
         return JSONResponse(
             status_code=400,
@@ -317,7 +317,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.sync_service = SyncService()
     app.state.intent_parser = TimerParserAdapter(lang="es")
 
-    faster_whisper = FasterWhisperAdapter(model_size="tiny", language="es")
+    faster_whisper = FasterWhisperAdapter(model_size="small", language="es")
     openai_asr = OpenAIWhisperAdapter(
         language="es",
     ) if os.getenv("OPENAI_API_KEY") else None

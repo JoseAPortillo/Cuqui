@@ -50,26 +50,34 @@ class SpeechToTextRouter:
         self._primary = primary
         self._fallback = fallback
 
-    async def transcribe(self, audio_bytes: bytes) -> str:
+    async def transcribe(self, audio_bytes: bytes, content_type: str | None = None) -> str:
         """Transcribe via *primary*; fall back to *secondary* on failure.
+
+        *content_type* is forwarded to each adapter as a format hint.
 
         Raises ``RuntimeError`` if both adapters fail.
         """
-        text = await self._try_transcribe(self._primary, "primary")
+        text = await self._try_transcribe(self._primary, audio_bytes, content_type, "primary")
         if text:
             return text
 
         if self._fallback is not None:
-            text = await self._try_transcribe(self._fallback, "fallback")
+            text = await self._try_transcribe(self._fallback, audio_bytes, content_type, "fallback")
             if text:
                 return text
 
         raise RuntimeError("All ASR adapters failed to produce a transcription")
 
-    async def _try_transcribe(self, adapter: SpeechToText, label: str) -> str:
+    async def _try_transcribe(
+        self,
+        adapter: SpeechToText,
+        audio_bytes: bytes,
+        content_type: str | None,
+        label: str,
+    ) -> str:
         """Attempt transcription with a single adapter."""
         try:
-            text = await adapter.transcribe(audio_bytes)
+            text = await adapter.transcribe(audio_bytes, content_type)
             if text:
                 log.info("ASR %s succeeded (%d chars)", label, len(text))
                 return text

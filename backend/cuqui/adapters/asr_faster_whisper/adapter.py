@@ -28,6 +28,29 @@ __all__ = [
 
 log = logging.getLogger(__name__)
 
+_CONTENT_TYPE_EXT: dict[str, str] = {
+    "audio/webm": ".webm",
+    "audio/wav": ".wav",
+    "audio/x-wav": ".wav",
+    "audio/mpeg": ".mp3",
+    "audio/mp3": ".mp3",
+    "audio/ogg": ".ogg",
+    "audio/mp4": ".m4a",
+    "audio/x-m4a": ".m4a",
+}
+
+
+def _ext_from_content_type(content_type: str | None) -> str:
+    """Map a MIME type to a file extension for ffmpeg.
+
+    Returns ``.wav`` as the fallback when the type is unknown or ``None``.
+    """
+    if not content_type:
+        return ".wav"
+    # Handle extended types like "audio/webm;codecs=opus"
+    base = content_type.split(";")[0].strip()
+    return _CONTENT_TYPE_EXT.get(base, ".wav")
+
 
 class FasterWhisperAdapter:
     """Transcribe audio via local ``faster-whisper``.
@@ -49,7 +72,7 @@ class FasterWhisperAdapter:
 
     def __init__(
         self,
-        model_size: str = "tiny",
+        model_size: str = "small",
         device: str = "cpu",
         compute_type: str = "int8",
         language: str = "es",
@@ -74,17 +97,21 @@ class FasterWhisperAdapter:
             log.info("faster-whisper model %r loaded (device=%s)", self._model_size, self._device)
         return self._model
 
-    async def transcribe(self, audio_bytes: bytes) -> str:
+    async def transcribe(self, audio_bytes: bytes, content_type: str | None = None) -> str:
         """Transcribe *audio_bytes* using local faster-whisper.
 
-        Writes the bytes to a temporary WAV file, transcribes it,
-        and returns the concatenated segment text.
+        Writes the bytes to a temporary file (extension inferred from
+        *content_type*), transcribes it, and returns the concatenated
+        segment text.
         """
         model = await self._ensure_model()
         loop = asyncio.get_running_loop()
 
+        suffix = _ext_from_content_type(content_type)
+        log.info("faster-whisper transcribe: %d bytes, suffix=%s, content_type=%r", len(audio_bytes), suffix, content_type)
+
         def _run() -> str:
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
                 f.write(audio_bytes)
                 tmp = f.name
             try:

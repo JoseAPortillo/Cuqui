@@ -28,6 +28,10 @@ class SpeechToText(typing.Protocol):
         text = await stt.transcribe(audio_bytes)
     """
 
-    async def transcribe(self, audio_bytes: bytes) -> str:
-        """Transcribe *audio_bytes* to a text string."""
+    async def transcribe(self, audio_bytes: bytes, content_type: str | None = None) -> str:
+        """Transcribe *audio_bytes* to a text string.
+
+        *content_type* is an optional MIME type hint (e.g. ``"audio/webm"``)
+        that some adapters use to determine the file format.
+        """
         ...

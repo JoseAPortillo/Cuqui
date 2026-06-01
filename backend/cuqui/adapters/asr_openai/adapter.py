@@ -58,9 +58,10 @@ class OpenAIWhisperAdapter:
         self._model = model
         self._language = language
 
-    async def transcribe(self, audio_bytes: bytes) -> str:
+    async def transcribe(self, audio_bytes: bytes, content_type: str | None = None) -> str:
         """Transcribe *audio_bytes* via the OpenAI Whisper API.
 
+        *content_type* is ignored — the API auto-detects the format.
         Raises ``RuntimeError`` if the adapter is disabled (no API key).
         """
         if self._disabled or self._client is None:
