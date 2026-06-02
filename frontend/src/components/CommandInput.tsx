@@ -33,7 +33,7 @@ export function CommandInput({ onSend, disabled }: CommandInputProps) {
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder='Ej: "poné 10 minutos para la pasta"'
+        placeholder='Ej: "pon 10 minutos para la pasta"'
         disabled={disabled}
       />
       <button className="command-input__btn" type="submit" disabled={disabled || !text.trim()}>

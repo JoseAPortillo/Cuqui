@@ -66,7 +66,7 @@ export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
     <div className="voice-section">
       <button
         className={`voice-btn ${recording ? 'voice-btn--recording' : ''}`}
-        title={recording ? 'Grabando...' : 'Presioná y hablá'}
+        title={recording ? 'Grabando...' : 'Presiona y habla'}
         disabled={disabled}
         onMouseDown={handleStart}
         onMouseUp={handleStop}
@@ -83,7 +83,7 @@ export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
         </svg>
       </button>
       <span className="voice-btn__label">
-        {recording ? 'Grabando... soltá para enviar' : 'Presioná y hablá'}
+        {recording ? 'Grabando... suelta para enviar' : 'Presiona y habla'}
       </span>
       {error && <span className="voice-btn__error">{error}</span>}
     </div>

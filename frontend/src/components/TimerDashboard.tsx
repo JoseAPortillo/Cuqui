@@ -17,7 +17,7 @@ export function TimerDashboard({ timers, onPause, onResume, onCancel, loadingTim
       <div className="dashboard-empty">
         <p>No hay temporizadores activos</p>
         <p className="dashboard-empty__hint">
-          Escribí un comando como <em>"poné 10 minutos para la pasta"</em>
+          Escribe un comando como <em>"pon 10 minutos para la pasta"</em>
         </p>
       </div>
     )
