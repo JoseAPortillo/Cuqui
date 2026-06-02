@@ -1,6 +1,5 @@
 import { useCuquiApi } from './hooks/useCuquiApi'
 import { TimerDashboard } from './components/TimerDashboard'
-import { CommandInput } from './components/CommandInput'
 import { VoiceButton } from './components/VoiceButton'
 import { AlertBanner } from './components/AlertBanner'
 import { DebugPanel } from './components/DebugPanel'
@@ -15,7 +14,7 @@ function getSessionId(): string {
 }
 
 export default function App() {
-  const { timers, connectionStatus, alerts, sendCommand, sendAudio, dismissAlert, error, pauseTimer, resumeTimer, cancelTimer, loadingTimers } = useCuquiApi()
+  const { timers, connectionStatus, alerts, sendAudio, dismissAlert, error, pauseTimer, resumeTimer, cancelTimer, deleteTimer, loadingTimers } = useCuquiApi()
   const sessionId = getSessionId()
 
   return (
@@ -27,26 +26,26 @@ export default function App() {
         <p className="app-header__subtitle">Asistente de cocina inteligente</p>
       </header>
 
-      <main className="app-main">
-        <div className="input-row">
-          <CommandInput onSend={sendCommand} disabled={connectionStatus !== 'connected'} />
-          <VoiceButton onAudio={sendAudio} disabled={connectionStatus !== 'connected'} />
+      {error && (
+        <div className="error-banner">
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className="error-banner">
-            {error}
-          </div>
-        )}
-
+      <main className="app-main">
         <TimerDashboard
           timers={timers}
           onPause={pauseTimer}
           onResume={resumeTimer}
           onCancel={cancelTimer}
+          onDelete={deleteTimer}
           loadingTimers={loadingTimers}
         />
       </main>
+
+      <div className="voice-fixed">
+        <VoiceButton onAudio={sendAudio} disabled={connectionStatus !== 'connected'} />
+      </div>
 
       <DebugPanel
         connectionStatus={connectionStatus}

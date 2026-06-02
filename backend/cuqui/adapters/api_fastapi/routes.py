@@ -430,6 +430,50 @@ async def cancel_timer(
     return _timer_to_dict(updated)
 
 
+# ── DELETE /timers/{timer_id} ────────────────────────────────────────────────
+
+
+@router.delete(
+    "/timers/{timer_id}",
+    responses={
+        200: {"description": "Timer removed"},
+        404: {"description": "Timer not found"},
+    },
+)
+async def delete_timer(
+    timer_id: str,
+    session_id: str = Query(..., description="Session identifier"),
+    timer_manager: TimerManager = Depends(get_timer_manager),
+    sync_service: SyncService = Depends(get_sync_service),
+) -> Any:
+    """Remove a timer from the session and broadcast the updated state.
+
+    Steps
+    -----
+    1. Remove via ``TimerManager.remove_timer()``.
+    2. 404 if the timer does not exist.
+    3. Broadcast full session state to all WebSocket clients.
+    4. Return a success marker.
+    """
+    removed = timer_manager.remove_timer(session_id, timer_id)
+    if removed is None:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error": "not_found",
+                "message": f"Timer {timer_id!r} not found in session {session_id!r}",
+            },
+        )
+
+    full_state = {
+        tid: _timer_to_dict(t)
+        for tid, t in timer_manager.get_all_timers(session_id).items()
+    }
+    await sync_service.broadcast(session_id, {"timers": full_state})
+
+    return {"status": "ok"}
+
+
 # ── WS /ws/session/{session_id} ───────────────────────────────────────────────
 
 

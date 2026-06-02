@@ -26,6 +26,7 @@ interface CuquiApiState {
   pauseTimer: (timerId: string) => Promise<void>
   resumeTimer: (timerId: string) => Promise<void>
   cancelTimer: (timerId: string) => Promise<void>
+  deleteTimer: (timerId: string) => Promise<void>
   loadingTimers: Record<string, boolean>
 }
 
@@ -214,6 +215,30 @@ export function useCuquiApi(): CuquiApiState {
   const resumeTimer = useCallback((timerId: string) => timerAction(timerId, 'resume'), [timerAction])
   const cancelTimer = useCallback((timerId: string) => timerAction(timerId, 'cancel'), [timerAction])
 
+  const deleteTimer = useCallback(async (timerId: string) => {
+    setError(null)
+    const sid = sessionId.current
+    try {
+      const res = await fetch(`/timers/${timerId}?session_id=${encodeURIComponent(sid)}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) {
+        const body = await res.json()
+        setError(body.message ?? body.error ?? 'Error al eliminar')
+        return
+      }
+
+      setTimers((prev) => {
+        const next = { ...prev }
+        delete next[timerId]
+        return next
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error de red')
+    }
+  }, [])
+
   return {
     timers,
     connectionStatus,
@@ -225,6 +250,7 @@ export function useCuquiApi(): CuquiApiState {
     pauseTimer,
     resumeTimer,
     cancelTimer,
+    deleteTimer,
     loadingTimers,
   }
 }

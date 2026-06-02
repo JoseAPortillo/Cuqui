@@ -5,6 +5,7 @@ interface TimerCardProps {
   onPause?: (timerId: string) => void
   onResume?: (timerId: string) => void
   onCancel?: (timerId: string) => void
+  onDelete?: (timerId: string) => void
   disabled?: boolean
 }
 
@@ -38,7 +39,7 @@ function progressPercent(timer: Timer): number {
   return Math.max(0, Math.min(100, ((timer.duration - timer.remaining) / timer.duration) * 100))
 }
 
-export function TimerCard({ timer, onPause, onResume, onCancel, disabled }: TimerCardProps) {
+export function TimerCard({ timer, onPause, onResume, onCancel, onDelete, disabled }: TimerCardProps) {
   const pct = progressPercent(timer)
   const isComplete = timer.status === 'completed'
   const isCancelled = timer.status === 'cancelled'
@@ -98,9 +99,20 @@ export function TimerCard({ timer, onPause, onResume, onCancel, disabled }: Time
 
       <div className="timer-card__footer">
         {faded ? (
-          <span className="timer-card__footer-text">
-            {isComplete ? '¡Tiempo cumplido!' : 'Cancelado'}
-          </span>
+          <div className="timer-card__footer-actions">
+            <span className="timer-card__footer-text">
+              {isComplete ? '¡Tiempo cumplido!' : 'Cancelado'}
+            </span>
+            {onDelete && (
+              <button
+                className="timer-card__btn timer-card__btn--delete"
+                onClick={() => onDelete(timer.id)}
+                disabled={disabled}
+              >
+                Eliminar
+              </button>
+            )}
+          </div>
         ) : (
           <span className="timer-card__footer-text">
             Total: {formatTime(timer.duration)}

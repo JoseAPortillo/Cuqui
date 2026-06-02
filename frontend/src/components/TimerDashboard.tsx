@@ -6,10 +6,11 @@ interface TimerDashboardProps {
   onPause?: (timerId: string) => void
   onResume?: (timerId: string) => void
   onCancel?: (timerId: string) => void
+  onDelete?: (timerId: string) => void
   loadingTimers?: Record<string, boolean>
 }
 
-export function TimerDashboard({ timers, onPause, onResume, onCancel, loadingTimers }: TimerDashboardProps) {
+export function TimerDashboard({ timers, onPause, onResume, onCancel, onDelete, loadingTimers }: TimerDashboardProps) {
   const entries = Object.values(timers)
 
   if (entries.length === 0) {
@@ -17,7 +18,7 @@ export function TimerDashboard({ timers, onPause, onResume, onCancel, loadingTim
       <div className="dashboard-empty">
         <p>No hay temporizadores activos</p>
         <p className="dashboard-empty__hint">
-          Escribe un comando como <em>"pon 10 minutos para la pasta"</em>
+          Presioná el botón y hablá, por ejemplo <em>"pon 10 minutos para la pasta"</em>
         </p>
       </div>
     )
@@ -32,6 +33,7 @@ export function TimerDashboard({ timers, onPause, onResume, onCancel, loadingTim
           onPause={onPause}
           onResume={onResume}
           onCancel={onCancel}
+          onDelete={onDelete}
           disabled={loadingTimers?.[timer.id] ?? false}
         />
       ))}
