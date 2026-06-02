@@ -1,0 +1,25 @@
+services:
+  cuqui:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - CUQUI_SERVE_FRONTEND=1
+      - CUQUI_PORT=8000
+      - CUQUI_RELOAD=0
+      # - OPENAI_API_KEY=sk-...  # uncomment if using OpenAI Whisper fallback
+    volumes:
+      # Persist SQLite database across restarts
+      - cuqui_data:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  cuqui_data:
