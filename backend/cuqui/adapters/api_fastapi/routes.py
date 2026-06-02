@@ -6,6 +6,7 @@ Provides three public endpoints:
   the application layer, return and broadcast the result.
 * ``GET  /timers`` — return all timers for a session as a JSON array.
 * ``WS   /ws/session/{session_id}`` — real-time state broadcast channel.
+* ``GET  /health`` — healthcheck for monitoring / Docker.
 
 Lifespan
 --------
@@ -28,7 +29,9 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
 from fastapi import APIRouter, Depends, FastAPI, File, Form, Query, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from cuqui.application.manage_timers import TimerManager
 from cuqui.application.process_command import process_command
@@ -78,6 +81,15 @@ def _timer_to_dict(timer: Timer) -> dict[str, Any]:
         "status": timer.status.value,
         "created_at": timer.created_at.isoformat(),
     }
+
+
+# ── GET /health ───────────────────────────────────────────────────────────────
+
+
+@router.get("/health")
+async def health() -> dict[str, str]:
+    """Healthcheck endpoint for monitoring and Docker HEALTHCHECK."""
+    return {"status": "ok"}
 
 
 # ── POST /commands/text ───────────────────────────────────────────────────────
@@ -556,13 +568,41 @@ async def _run_tick(app: FastAPI) -> None:
             await sync.broadcast(sid, {"timers": full})
 
 
-def create_app() -> FastAPI:
+def create_app(serve_frontend: bool = False, frontend_dir: str | None = None) -> FastAPI:
     """Build a fully-wired ``FastAPI`` application.
 
-    Includes the ``lifespan`` context manager and the ``router``.
-    This is the production entry point; tests typically bypass it
-    and use ``app.dependency_overrides`` instead.
+    Includes the ``lifespan`` context manager, CORS middleware,
+    and (optionally) static file serving for a production frontend build.
+
+    Parameters
+    ----------
+    serve_frontend:
+        If ``True``, mount the static frontend build at ``/`` so the same
+        server handles both API and UI (single-container deploy).
+    frontend_dir:
+        Path to the directory containing the production frontend build
+        (e.g. ``/app/frontend/dist``).  Falls back to ``frontend/dist``
+        relative to the current working directory.
     """
     app = FastAPI(lifespan=lifespan)
+
+    # ── CORS — allow the Vite dev server (or any frontend origin) ──────────
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     app.include_router(router)
+
+    # ── Production static frontend ─────────────────────────────────────────
+    if serve_frontend:
+        import os
+
+        dist = frontend_dir or os.path.join(os.getcwd(), "frontend", "dist")
+        if os.path.isdir(dist):
+            app.mount("/", StaticFiles(directory=dist, html=True), name="frontend")
+
     return app
