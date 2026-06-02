@@ -4,6 +4,8 @@
   max-width: 720px;
   margin: 0 auto;
   padding: 16px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -21,6 +23,9 @@
   flex-direction: column;
   gap: 4px;
   padding: 8px;
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-left: max(8px, env(safe-area-inset-left));
+  padding-right: max(8px, env(safe-area-inset-right));
 }
 
 .alert-banner__item {
@@ -53,10 +58,11 @@
 .alert-banner__dismiss {
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  padding: 4px 16px;
+  min-height: 44px;
+  padding: 8px 18px;
   border-radius: 6px;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   flex-shrink: 0;
   transition: background 0.15s;
 }
@@ -98,7 +104,8 @@
 
 .input-row {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* ── Command Input ────────────────────────────────────── */
@@ -111,12 +118,12 @@
 
 .command-input__field {
   flex: 1;
-  padding: 10px 14px;
+  padding: 12px 14px;
   background: #1e1e3a;
   border: 1px solid #333;
   border-right: none;
   border-radius: 10px 0 0 10px;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   color: #e0e0e0;
   outline: none;
   transition: border-color 0.15s;
@@ -135,11 +142,13 @@
 }
 
 .command-input__btn {
-  padding: 10px 18px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 12px 20px;
   background: #4fc3f7;
   color: #0f0f23;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   border-radius: 0 10px 10px 0;
   transition: background 0.15s, opacity 0.15s;
 }
@@ -152,34 +161,68 @@
   opacity: 0.4;
 }
 
-/* ── Voice Button ──────────────────────────────────────── */
+/* ── Voice Section ─────────────────────────────────────── */
+
+.voice-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+}
 
 .voice-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  background: #1e1e3a;
-  border: 1px solid #333;
-  border-radius: 10px;
-  font-size: 0.875rem;
-  color: #888;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  justify-content: center;
+  background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+  border: none;
+  color: #0f0f23;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  box-shadow: 0 4px 20px rgba(79, 195, 247, 0.3);
+  touch-action: manipulation;
 }
 
 .voice-btn:not(:disabled) {
-  opacity: 1;
+  cursor: pointer;
+}
+
+.voice-btn:not(:disabled):active {
+  transform: scale(0.92);
 }
 
 .voice-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  background: #333;
+  box-shadow: none;
 }
 
 .voice-btn--recording {
-  background: #3e1a1a;
-  border-color: #f44336;
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  box-shadow: 0 4px 20px rgba(244, 67, 54, 0.5);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.voice-btn__label {
+  font-size: 0.8125rem;
+  color: #888;
+  user-select: none;
+}
+
+.voice-btn__error {
+  font-size: 0.75rem;
   color: #ef9a9a;
+  text-align: center;
+  max-width: 240px;
 }
 
 /* ── Error Banner ─────────────────────────────────────── */
@@ -351,9 +394,11 @@
 }
 
 .timer-card__btn {
-  padding: 6px 14px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 18px;
   border-radius: 8px;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
   border: 1px solid transparent;
   transition: background 0.15s, opacity 0.15s, border-color 0.15s;
@@ -403,6 +448,7 @@
   right: 12px;
   z-index: 50;
   font-size: 0.8125rem;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .debug-panel__toggle {

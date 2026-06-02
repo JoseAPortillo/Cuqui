@@ -38,6 +38,7 @@ frontend/build/
 .env
 .env.local
 *.env
+*.db
 
 # Coverage
 coverage/

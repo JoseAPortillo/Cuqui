@@ -5,19 +5,25 @@ interface VoiceButtonProps {
   disabled?: boolean
 }
 
+function isMediaRecorderSupported(): boolean {
+  return typeof MediaRecorder !== 'undefined'
+}
+
 export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
   const [recording, setRecording] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const [supported] = useState(isMediaRecorderSupported)
 
   const handleStart = useCallback(async () => {
+    setError(null)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : 'audio/webm',
-      })
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm'
+      const recorder = new MediaRecorder(stream, { mimeType: mime })
       chunksRef.current = []
 
       recorder.ondataavailable = (e) => {
@@ -35,8 +41,15 @@ export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
       mediaRecorderRef.current = recorder
       recorder.start()
       setRecording(true)
-    } catch {
-      // Permission denied or no microphone
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('Permission')) {
+        setError('Permiso de micrófono denegado')
+      } else if (msg.includes('secure')) {
+        setError('Se requiere HTTPS para usar el micrófono')
+      } else {
+        setError('Error al acceder al micrófono')
+      }
     }
   }, [onAudio])
 
@@ -47,24 +60,32 @@ export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
     setRecording(false)
   }, [])
 
+  if (!supported) return null
+
   return (
-    <button
-      className={`voice-btn ${recording ? 'voice-btn--recording' : ''}`}
-      title={recording ? 'Grabando...' : 'Presioná y hablá'}
-      disabled={disabled}
-      onMouseDown={handleStart}
-      onMouseUp={handleStop}
-      onMouseLeave={handleStop}
-      onTouchStart={handleStart}
-      onTouchEnd={handleStop}
-    >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-        <line x1="12" y1="19" x2="12" y2="23" />
-        <line x1="8" y1="23" x2="16" y2="23" />
-      </svg>
-      <span>{recording ? 'Grabando...' : 'Voz'}</span>
-    </button>
+    <div className="voice-section">
+      <button
+        className={`voice-btn ${recording ? 'voice-btn--recording' : ''}`}
+        title={recording ? 'Grabando...' : 'Presioná y hablá'}
+        disabled={disabled}
+        onMouseDown={handleStart}
+        onMouseUp={handleStop}
+        onMouseLeave={handleStop}
+        onTouchStart={handleStart}
+        onTouchEnd={handleStop}
+        onTouchCancel={handleStop}
+      >
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="23" />
+          <line x1="8" y1="23" x2="16" y2="23" />
+        </svg>
+      </button>
+      <span className="voice-btn__label">
+        {recording ? 'Grabando... soltá para enviar' : 'Presioná y hablá'}
+      </span>
+      {error && <span className="voice-btn__error">{error}</span>}
+    </div>
   )
 }
