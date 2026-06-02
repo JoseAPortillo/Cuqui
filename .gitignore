@@ -12,6 +12,7 @@ env/
 # IDE
 .vscode/
 .idea/
+.windsurf/
 *.swp
 *.swo
 
@@ -25,6 +26,10 @@ Thumbs.db
 # Frontend / Node
 node_modules/
 frontend/dist/
+frontend/dev-dist/
+
+# Vite
+.vite/
 frontend/.svelte-kit/
 frontend/.next/
 frontend/build/
@@ -33,6 +38,7 @@ frontend/build/
 .env
 .env.local
 *.env
+*.db
 
 # Coverage
 coverage/

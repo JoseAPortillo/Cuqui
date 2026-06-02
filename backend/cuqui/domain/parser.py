@@ -54,21 +54,27 @@ _UNIT_MULTIPLIER: dict[str, int] = {
     "second": 1,
     "minute": 60,
     "hour": 3600,
+    "day": 86400,
     "segundo": 1,
     "minuto": 60,
     "hora": 3600,
+    "día": 86400,
+    "dia": 86400,
 }
 
 _UNIT_ENGLISH: dict[str, str] = {
     "segundo": "second",
     "minuto": "minute",
     "hora": "hour",
+    "día": "day",
+    "dia": "day",
 }
 
 _UNIT_PLURAL: dict[str, str] = {
     "second": "seconds",
     "minute": "minutes",
     "hour": "hours",
+    "day": "days",
 }
 
 
@@ -87,7 +93,8 @@ def _to_seconds(number: int, unit_singular: str) -> int:
 
 def _pluralize(unit_singular: str) -> str:
     """Return the plural form of a time-unit label (always English)."""
-    return _UNIT_PLURAL.get(_normalize_unit(unit_singular), unit_singular + "s")
+    english = _normalize_unit(unit_singular)
+    return _UNIT_PLURAL.get(english, english + "s")
 
 
 # ── Timer Parser ───────────────────────────────────────────────────────────────
@@ -121,9 +128,9 @@ class TimerParser:
     _SET_TIMER_EN = re.compile(
         r"(?:set\s+)?(?:a\s+)?"
         r"(?:timer\s+)?(?:for\s+)?"
-        r"(\d+)\s*(minute|second|hour)s?\s*"
+        r"(\d+)\s*(minute|second|hour)?s?\s*"
         r"(?:timer\s+)?"
-        r"(?:(?:for|called)\s+(\w+))?",
+        r"(?:(?:for|called)\s+(.+))?",
         re.IGNORECASE,
     )
 
@@ -145,14 +152,16 @@ class TimerParser:
     _EXTEND_TIMER_EN = re.compile(
         r"(?:add|extend)(?:\s+by)?\s+"
         r"(\d+)\s*(?:more\s+)?"
-        r"(minute|second|hour)s?",
+        r"(minute|second|hour)?s?\s*"
+        r"(?:to\s+(.+))?",
         re.IGNORECASE,
     )
 
     _REDUCE_TIMER_EN = re.compile(
         r"(?:reduce|subtract)(?:\s+by)?\s+"
         r"(\d+)\s*(?:more\s+)?"
-        r"(minute|second|hour)s?",
+        r"(minute|second|hour)?s?\s*"
+        r"(?:from\s+(.+))?",
         re.IGNORECASE,
     )
 
@@ -174,11 +183,11 @@ class TimerParser:
     # ── Spanish patterns ──────────────────────────────────────────────────
 
     _SET_TIMER_ES = re.compile(
-        r"(?:(?:configurar|poner|crear)\s+(?:un\s+)?)?"
+        r"(?:(?:configur(?:ar|á|a)|pon(?:e|é|er)?|crear|set(?:eá|ear))\s+(?:un\s+)?)?"
         r"(?:temporizador\s+)?(?:de\s+|para\s+)?"
-        r"(\d+)\s*(minuto|segundo|hora)s?\s*"
+        r"(\d+)\s*(minuto|segundo|hora|d(?:í|i)a)?s?\s*"
         r"(?:temporizador\s+)?"
-        r"(?:(?:para|llamado)\s+(\w+))?",
+        r"(?:(?:para|llamado|a)\s+(.+))?",
         re.IGNORECASE,
     )
 
@@ -192,6 +201,11 @@ class TimerParser:
         r"paus(?:a|á|ar)\s+(?:el\s+)?(.+?)\s+temporizador",
         re.IGNORECASE,
     )
+    # PAUSE 3: pausar [el|la] [name]  (short form, no "temporizador")
+    _PAUSE_TIMER_ES_ONLY_NAME = re.compile(
+        r"paus(?:a|á|ar)\s+(.+)",
+        re.IGNORECASE,
+    )
 
     # CANCEL 1: cancelar [el] temporizador [de] [name]
     _CANCEL_TIMER_ES = re.compile(
@@ -201,6 +215,11 @@ class TimerParser:
     # CANCEL 2: cancelar [el] [name] temporizador
     _CANCEL_TIMER_ES_NAME_FIRST = re.compile(
         r"cancel(?:a|á|ar)\s+(?:el\s+)?(.+?)\s+temporizador",
+        re.IGNORECASE,
+    )
+    # CANCEL 3: cancelar [el|la] [name]  (short form, no "temporizador")
+    _CANCEL_TIMER_ES_ONLY_NAME = re.compile(
+        r"cancel(?:a|á|ar)\s+(.+)",
         re.IGNORECASE,
     )
 
@@ -214,18 +233,26 @@ class TimerParser:
         r"reanud(?:a|á|ar)\s+(?:el\s+)?(.+?)\s+temporizador",
         re.IGNORECASE,
     )
+    # RESUME 3: reanudar [el|la] [name]  (short form, no "temporizador")
+    _RESUME_TIMER_ES_ONLY_NAME = re.compile(
+        r"reanud(?:a|á|ar)\s+(.+)",
+        re.IGNORECASE,
+    )
 
     _EXTEND_TIMER_ES = re.compile(
-        r"(?:agregar|añadir|extender)(?:le\s+)?\s*"
+        r"(?:agreg(?:ar|á|a)|añad(?:ir|í|e)|anad(?:ir|í|e)|extiende|extender)"
+        r"(?:le\s+)?\s*"
         r"(\d+)\s*(?:más\s+)?"
-        r"(minuto|segundo|hora)s?",
+        r"(minuto|segundo|hora|d(?:í|i)a)s?\s*"
+        r"(?:(?:a|para|al)\s+(.+))?",
         re.IGNORECASE,
     )
 
     _REDUCE_TIMER_ES = re.compile(
-        r"(?:reducir|restar|quitar)(?:le\s+)?\s*"
+        r"(?:reduc(?:ir|í|e)|rest(?:ar|á|a)|quit(?:ar|á|a))(?:le\s+)?\s*"
         r"(\d+)\s*(?:más\s+)?"
-        r"(minuto|segundo|hora)s?",
+        r"(minuto|segundo|hora|d(?:í|i)a)s?\s*"
+        r"(?:(?:a|para|al)\s+(.+))?",
         re.IGNORECASE,
     )
 
@@ -259,7 +286,7 @@ class TimerParser:
         Returns the first matching ``CuquiCommand``, or a ``ParseError``
         if no pattern matches or required parameters are missing.
         """
-        stripped = text.strip()
+        stripped = text.strip().rstrip(".,!?;:")
         if not stripped:
             return ParseError(
                 message="No matching intent",
@@ -293,10 +320,10 @@ class TimerParser:
     @staticmethod
     def _build_set_timer(match: re.Match) -> CuquiCommand:
         number = int(match.group(1))
-        unit_singular = match.group(2).lower()
+        unit_singular = (match.group(2) or "minute").lower()
         duration = _to_seconds(number, unit_singular)
         unit = _pluralize(unit_singular)
-        name = match.group(3)  # may be None
+        name = match.group(3).strip() if match.group(3) else None
         return SetTimerCommand(duration=duration, unit=unit, name=name)
 
     @staticmethod
@@ -319,22 +346,31 @@ class TimerParser:
     @staticmethod
     def _build_extend_timer(match: re.Match) -> CuquiCommand:
         number = int(match.group(1))
-        unit_singular = match.group(2).lower()
+        unit_singular = (match.group(2) or "minute").lower()
         duration = _to_seconds(number, unit_singular)
         unit = _pluralize(unit_singular)
-        return ExtendTimerCommand(duration=duration, unit=unit)
+        name = match.group(3).strip() if match.group(3) else None
+        return ExtendTimerCommand(duration=duration, unit=unit, name=name)
 
     @staticmethod
     def _build_reduce_timer(match: re.Match) -> CuquiCommand:
         number = int(match.group(1))
-        unit_singular = match.group(2).lower()
+        unit_singular = (match.group(2) or "minute").lower()
         duration = _to_seconds(number, unit_singular)
         unit = _pluralize(unit_singular)
-        return ReduceTimerCommand(duration=duration, unit=unit)
+        name = match.group(3).strip() if match.group(3) else None
+        return ReduceTimerCommand(duration=duration, unit=unit, name=name)
 
     @staticmethod
     def _build_rename_timer(match: re.Match) -> CuquiCommand:
         name = match.group(1).strip()
+        # Handle explicit separator: "old_name a new_name" (ES) or "old_name to new_name" (EN).
+        # The regex can capture the old name too when the user specifies which timer to rename.
+        # Take the part after the LAST separator as the new name.
+        for sep in (" a ", " to "):
+            if sep in name:
+                name = name.rsplit(sep, 1)[-1].strip()
+                break
         return RenameTimerCommand(name=name)
 
     @staticmethod
@@ -359,10 +395,13 @@ TimerParser.LANGS: dict[str, list[tuple[re.Pattern, Callable[..., CuquiCommand]]
         (TimerParser._SET_TIMER_ES, TimerParser._build_set_timer),
         (TimerParser._PAUSE_TIMER_ES, TimerParser._build_pause_timer),
         (TimerParser._PAUSE_TIMER_ES_NAME_FIRST, TimerParser._build_pause_timer),
+        (TimerParser._PAUSE_TIMER_ES_ONLY_NAME, TimerParser._build_pause_timer),
         (TimerParser._CANCEL_TIMER_ES, TimerParser._build_cancel_timer),
         (TimerParser._CANCEL_TIMER_ES_NAME_FIRST, TimerParser._build_cancel_timer),
+        (TimerParser._CANCEL_TIMER_ES_ONLY_NAME, TimerParser._build_cancel_timer),
         (TimerParser._RESUME_TIMER_ES, TimerParser._build_resume_timer),
         (TimerParser._RESUME_TIMER_ES_NAME_FIRST, TimerParser._build_resume_timer),
+        (TimerParser._RESUME_TIMER_ES_ONLY_NAME, TimerParser._build_resume_timer),
         (TimerParser._EXTEND_TIMER_ES, TimerParser._build_extend_timer),
         (TimerParser._REDUCE_TIMER_ES, TimerParser._build_reduce_timer),
         (TimerParser._RENAME_TIMER_ES, TimerParser._build_rename_timer),
