@@ -20,9 +20,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Install Python dependencies (including optional ASR + LLM groups)
-COPY backend/pyproject.toml backend/README.md ./
-RUN pip install --no-cache-dir -e ".[asr,llm]"
+# Install Python dependencies (base + ASR + LLM extras)
+COPY backend/pyproject.toml ./
+RUN pip install --no-cache-dir \
+    "fastapi>=0.115" \
+    "uvicorn[standard]>=0.34" \
+    "websockets>=14.0" \
+    "pydantic>=2.0" \
+    "python-multipart>=0.0.18" \
+    "faster-whisper>=1.0" \
+    "openai>=1.0"
 
 # Copy backend source (excluding tests)
 COPY backend/cuqui/ ./cuqui/
