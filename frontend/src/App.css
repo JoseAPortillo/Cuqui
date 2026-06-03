@@ -473,3 +473,136 @@
   font-family: monospace;
   color: #888;
 }
+
+/* ── Info Button ──────────────────────────────────────── */
+
+.info-btn {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  z-index: 40;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1a1a3e;
+  border: 1px solid #2a2a4e;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+}
+
+.info-btn:hover {
+  background: #2a2a4e;
+  color: #4fc3f7;
+  border-color: #4fc3f7;
+}
+
+/* ── Commands Overlay ─────────────────────────────────── */
+
+.commands-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.commands-modal {
+  background: #1a1a3e;
+  border: 1px solid #2a2a4e;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.commands-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 0;
+}
+
+.commands-modal__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #4fc3f7;
+}
+
+.commands-modal__close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2a2a4e;
+  border: none;
+  color: #888;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  touch-action: manipulation;
+}
+
+.commands-modal__close:hover {
+  background: #3a3a5e;
+  color: #fff;
+}
+
+.commands-modal__list {
+  list-style: none;
+  padding: 12px 20px 20px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.commands-modal__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  background: #0f0f23;
+  border-radius: 10px;
+  border: 1px solid #2a2a4e;
+}
+
+.commands-modal__action {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #e0e0e0;
+}
+
+.commands-modal__verbs {
+  font-size: 0.8rem;
+  color: #4fc3f7;
+  font-family: monospace;
+}
+
+.commands-modal__example {
+  font-size: 0.8125rem;
+  color: #888;
+  font-style: italic;
+}

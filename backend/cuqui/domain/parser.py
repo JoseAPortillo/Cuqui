@@ -97,6 +97,15 @@ def _pluralize(unit_singular: str) -> str:
     return _UNIT_PLURAL.get(english, english + "s")
 
 
+def _parse_number(text: str) -> int:
+    """Convert a Spanish number word or digit string to an integer."""
+    word_map = {"un": 1, "una": 1, "uno": 1}
+    key = text.strip().lower()
+    if key in word_map:
+        return word_map[key]
+    return int(text)
+
+
 # ── Timer Parser ───────────────────────────────────────────────────────────────
 
 
@@ -183,9 +192,10 @@ class TimerParser:
     # ── Spanish patterns ──────────────────────────────────────────────────
 
     _SET_TIMER_ES = re.compile(
-        r"(?:(?:configur(?:ar|á|a)|pon(?:e|é|er)?|crear|set(?:eá|ear))\s+(?:un\s+)?)?"
+        r"(?:(?:configur(?:ar|á|a)|pon(?:e|é|er)?|crear|set(?:eá|ear))"
+        r"\s+(?:un\s+(?=temporizador))?)?"
         r"(?:temporizador\s+)?(?:de\s+|para\s+)?"
-        r"(\d+)\s*(minuto|segundo|hora|d(?:í|i)a)?s?\s*"
+        r"(\d+|un(?:a|o)?)\s*(minuto|segundo|hora|d(?:í|i)a)?s?\s*"
         r"(?:temporizador\s+)?"
         r"(?:(?:para|llamado|a)\s+(.+))?",
         re.IGNORECASE,
@@ -242,7 +252,7 @@ class TimerParser:
     _EXTEND_TIMER_ES = re.compile(
         r"(?:agreg(?:ar|á|a)|añad(?:ir|í|e)|anad(?:ir|í|e)|extiende|extender)"
         r"(?:le\s+)?\s*"
-        r"(\d+)\s*(?:más\s+)?"
+        r"(\d+|un(?:a|o)?)\s*(?:más\s+)?"
         r"(minuto|segundo|hora|d(?:í|i)a)s?\s*"
         r"(?:(?:a|para|al)\s+(.+))?",
         re.IGNORECASE,
@@ -250,14 +260,14 @@ class TimerParser:
 
     _REDUCE_TIMER_ES = re.compile(
         r"(?:reduc(?:ir|í|e)|rest(?:ar|á|a)|quit(?:ar|á|a))(?:le\s+)?\s*"
-        r"(\d+)\s*(?:más\s+)?"
+        r"(\d+|un(?:a|o)?)\s*(?:más\s+)?"
         r"(minuto|segundo|hora|d(?:í|i)a)s?\s*"
         r"(?:(?:a|para|al)\s+(.+))?",
         re.IGNORECASE,
     )
 
     _RENAME_TIMER_ES = re.compile(
-        r"renombrar\s+(?:temporizador\s+)?(?:a\s+)?(.+)",
+        r"renombr(?:a|á|ar)\s+(?:temporizador\s+)?(?:a\s+)?(.+)",
         re.IGNORECASE,
     )
 
@@ -319,7 +329,7 @@ class TimerParser:
 
     @staticmethod
     def _build_set_timer(match: re.Match) -> CuquiCommand:
-        number = int(match.group(1))
+        number = _parse_number(match.group(1))
         unit_singular = (match.group(2) or "minute").lower()
         duration = _to_seconds(number, unit_singular)
         unit = _pluralize(unit_singular)
@@ -345,7 +355,7 @@ class TimerParser:
 
     @staticmethod
     def _build_extend_timer(match: re.Match) -> CuquiCommand:
-        number = int(match.group(1))
+        number = _parse_number(match.group(1))
         unit_singular = (match.group(2) or "minute").lower()
         duration = _to_seconds(number, unit_singular)
         unit = _pluralize(unit_singular)
@@ -354,7 +364,7 @@ class TimerParser:
 
     @staticmethod
     def _build_reduce_timer(match: re.Match) -> CuquiCommand:
-        number = int(match.group(1))
+        number = _parse_number(match.group(1))
         unit_singular = (match.group(2) or "minute").lower()
         duration = _to_seconds(number, unit_singular)
         unit = _pluralize(unit_singular)

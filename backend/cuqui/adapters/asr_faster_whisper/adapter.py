@@ -117,8 +117,9 @@ class FasterWhisperAdapter:
             try:
                 segments, info = model.transcribe(
                     tmp,
-                    beam_size=5,
+                    beam_size=8,
                     language=self._language,
+                    condition_on_previous_text=False,
                 )
                 text = " ".join(seg.text.strip() for seg in segments)
                 log.debug(

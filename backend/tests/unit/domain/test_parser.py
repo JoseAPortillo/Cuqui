@@ -506,3 +506,48 @@ class TestTimerParserSpanishEdgeCases:
         """GIVEN random Spanish text → ParseError."""
         result = self.parser.parse("hacer algo aleatorio")
         assert isinstance(result, ParseError)
+
+    def test_set_timer_un_minuto(self) -> None:
+        """GIVEN "poner un minuto para la pasta" → SET_TIMER duration=60.
+        'un' should be recognized as numeric 1.
+        """
+        result = self.parser.parse("poner un minuto para la pasta")
+        assert isinstance(result, SetTimerCommand)
+        assert result.duration == 60
+        assert result.unit == "minutes"
+        assert result.name == "la pasta"
+
+    def test_set_timer_dias(self) -> None:
+        """GIVEN "poner 2 días para la pasta" → SET_TIMER duration=172800.
+        'días' (plural of 'día') should be recognized as 'days'.
+        """
+        result = self.parser.parse("poner 2 días para la pasta")
+        assert isinstance(result, SetTimerCommand)
+        assert result.duration == 172800
+        assert result.unit == "days"
+        assert result.name == "la pasta"
+
+    def test_set_timer_un_segundo(self) -> None:
+        """GIVEN "un segundo" shorthand → SET_TIMER duration=1."""
+        result = self.parser.parse("un segundo")
+        assert isinstance(result, SetTimerCommand)
+        assert result.duration == 1
+        assert result.unit == "seconds"
+
+    def test_extend_un_minuto(self) -> None:
+        """GIVEN "agregarle un minuto a la pasta" → EXTEND_TIMER duration=60.
+        'un' should be recognized as numeric 1 in extend/reduce too.
+        """
+        result = self.parser.parse("agregarle un minuto a la pasta")
+        assert isinstance(result, ExtendTimerCommand)
+        assert result.duration == 60
+        assert result.unit == "minutes"
+        assert result.name == "la pasta"
+
+    def test_reduce_un_minuto(self) -> None:
+        """GIVEN "quitarle un minuto a la pasta" → REDUCE_TIMER duration=60."""
+        result = self.parser.parse("quitarle un minuto a la pasta")
+        assert isinstance(result, ReduceTimerCommand)
+        assert result.duration == 60
+        assert result.unit == "minutes"
+        assert result.name == "la pasta"

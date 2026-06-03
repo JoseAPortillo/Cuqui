@@ -189,12 +189,18 @@ async def post_audio_command(
     5. Broadcast full session state to WS clients.
     6. Return the timer result.
     """
-    # 1. Read audio
+    # 1. Read audio with size limit (10 MB max)
+    MAX_AUDIO_SIZE = 10 * 1024 * 1024
     audio_bytes = await audio.read()
     if not audio_bytes:
         return JSONResponse(
             status_code=400,
             content={"error": "empty_audio", "message": "No audio data received"},
+        )
+    if len(audio_bytes) > MAX_AUDIO_SIZE:
+        return JSONResponse(
+            status_code=413,
+            content={"error": "audio_too_large", "message": "Audio exceeds 10 MB limit"},
         )
 
     # 2. Transcribe
@@ -530,7 +536,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from cuqui.adapters.parser_rules.adapter import TimerParserAdapter
     from cuqui.adapters.storage_sqlite import SqliteTimerStore
 
-    store = SqliteTimerStore(db_path="cuqui.db")
+    store = SqliteTimerStore(db_path="data/cuqui.db")
     app.state.timer_manager = TimerManager(store=store)
     app.state.sync_service = SyncService()
     app.state.intent_parser = TimerParserAdapter(lang="es")
@@ -584,13 +590,15 @@ def create_app(serve_frontend: bool = False, frontend_dir: str | None = None) ->
         (e.g. ``/app/frontend/dist``).  Falls back to ``frontend/dist``
         relative to the current working directory.
     """
-    app = FastAPI(lifespan=lifespan)
+    app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
     # ── CORS — allow the Vite dev server (or any frontend origin) ──────────
+    # In production (same-origin static files) CORS is not needed.
+    # allow_credentials=False avoids the dangerous * + credentials anti-pattern.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_credentials=True,
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )

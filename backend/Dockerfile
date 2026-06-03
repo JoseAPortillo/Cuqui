@@ -40,9 +40,18 @@ COPY --from=frontend-builder /build/frontend/dist ./frontend/dist
 # ── Runtime configuration ──────────────────────────────────────────────────
 ENV CUQUI_SERVE_FRONTEND=1 \
     CUQUI_PORT=8000 \
-    CUQUI_RELOAD=0
+    CUQUI_RELOAD=0 \
+    HF_HOME=/app/data/hf_cache
+
+# ── Non-root user (security best practice) ───────────────────────────────
+RUN addgroup --system --gid 1001 cuqui && \
+    adduser --system --uid 1001 --ingroup cuqui --no-create-home cuqui && \
+    mkdir -p /app/data/hf_cache && \
+    chown -R cuqui:cuqui /app/data
 
 EXPOSE 8000
+
+USER cuqui
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"

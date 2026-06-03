@@ -3,6 +3,7 @@ import { TimerDashboard } from './components/TimerDashboard'
 import { VoiceButton } from './components/VoiceButton'
 import { AlertBanner } from './components/AlertBanner'
 import { DebugPanel } from './components/DebugPanel'
+import { CommandsHelp } from './components/CommandsHelp'
 import './App.css'
 
 function getSessionId(): string {
@@ -20,6 +21,8 @@ export default function App() {
   return (
     <div className="app">
       <AlertBanner alerts={alerts} onDismiss={dismissAlert} />
+
+      <CommandsHelp />
 
       <header className="app-header">
         <h1 className="app-header__title">Cuqui</h1>

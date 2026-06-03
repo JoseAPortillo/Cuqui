@@ -2,25 +2,38 @@
 .git/
 .gitignore
 
-# Python
-__pycache__/
-*.pyc
-.venv/
-*.egg-info/
-
 # Node
-node_modules/
+frontend/node_modules/
 frontend/dev-dist/
 
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
 # IDE
-.idea/
 .vscode/
+.idea/
+.windsurf/
 *.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# SDD / docs
-openspec/
-*.md
+# Environment
+.env
+.env.local
+
+# Data
+*.db
+
+# Logs
+*.log
+
+# Docker
+.docker/
