@@ -30,8 +30,7 @@ from typing import Any, AsyncIterator
 
 from fastapi import APIRouter, Depends, FastAPI, File, Form, Query, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
 
 from cuqui.application.manage_timers import TimerManager
 from cuqui.application.process_command import process_command
@@ -606,11 +605,23 @@ def create_app(serve_frontend: bool = False, frontend_dir: str | None = None) ->
     app.include_router(router)
 
     # ── Production static frontend ─────────────────────────────────────────
+    # NOTE: we use a catch‑all HTTP route instead of app.mount("/", StaticFiles(...))
+    # because Starlette checks mounts *before* routes — a StaticFiles mount at "/"
+    # would intercept WebSocket upgrade requests and close them, breaking the
+    # real‑time connection that enables the microphone button.
     if serve_frontend:
         import os
 
         dist = frontend_dir or os.path.join(os.getcwd(), "frontend", "dist")
         if os.path.isdir(dist):
-            app.mount("/", StaticFiles(directory=dist, html=True), name="frontend")
+
+            @app.get("/{full_path:path}")
+            async def spa_fallback(full_path: str) -> FileResponse:
+                file_path = os.path.join(dist, full_path or "index.html")
+                if os.path.isdir(file_path):
+                    file_path = os.path.join(file_path, "index.html")
+                if os.path.isfile(file_path):
+                    return FileResponse(file_path)
+                return FileResponse(os.path.join(dist, "index.html"))
 
     return app
