@@ -19,3 +19,8 @@ export interface TimerAlert {
   timerId: string
   timerName: string
 }
+
+export interface ApiKeyStatus {
+  has_key: boolean
+  masked_key: string | null
+}

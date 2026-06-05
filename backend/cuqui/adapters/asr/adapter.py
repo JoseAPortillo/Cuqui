@@ -4,6 +4,10 @@ The router allows a primary (local, free) adapter and an optional
 secondary (cloud, paid) fallback.  If the primary raises or returns
 empty text, the secondary is tried.
 
+If a *session_api_key* is passed to :meth:`transcribe`, a temporary
+``OpenAIWhisperAdapter`` with that key is inserted between the primary
+and the configured fallback, giving the session-specific key priority.
+
 Usage::
 
     from cuqui.adapters.asr import SpeechToTextRouter
@@ -15,6 +19,7 @@ Usage::
         fallback=OpenAIWhisperAdapter(),
     )
     text = await router.transcribe(audio_bytes)
+    text = await router.transcribe(audio_bytes, session_api_key="sk-...")
 """
 
 from __future__ import annotations
@@ -50,8 +55,17 @@ class SpeechToTextRouter:
         self._primary = primary
         self._fallback = fallback
 
-    async def transcribe(self, audio_bytes: bytes, content_type: str | None = None) -> str:
+    async def transcribe(
+        self,
+        audio_bytes: bytes,
+        content_type: str | None = None,
+        session_api_key: str | None = None,
+    ) -> str:
         """Transcribe via *primary*; fall back to *secondary* on failure.
+
+        If *session_api_key* is provided, a temporary ``OpenAIWhisperAdapter``
+        is created with that key and tried **before** the configured fallback,
+        allowing per-session keys to take priority over the server-wide env var.
 
         *content_type* is forwarded to each adapter as a format hint.
 
@@ -60,6 +74,16 @@ class SpeechToTextRouter:
         text = await self._try_transcribe(self._primary, audio_bytes, content_type, "primary")
         if text:
             return text
+
+        if session_api_key:
+            from cuqui.adapters.asr_openai import OpenAIWhisperAdapter
+
+            session_adapter = OpenAIWhisperAdapter(api_key=session_api_key)
+            text = await self._try_transcribe(
+                session_adapter, audio_bytes, content_type, "session-key",
+            )
+            if text:
+                return text
 
         if self._fallback is not None:
             text = await self._try_transcribe(self._fallback, audio_bytes, content_type, "fallback")

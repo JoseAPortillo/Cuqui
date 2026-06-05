@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ConnectionStatus, Timer, TimerAlert } from '../types/timer'
+import type { ApiKeyStatus, ConnectionStatus, Timer, TimerAlert } from '../types/timer'
 
 function generateId(): string {
   return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)
@@ -28,6 +28,9 @@ interface CuquiApiState {
   cancelTimer: (timerId: string) => Promise<void>
   deleteTimer: (timerId: string) => Promise<void>
   loadingTimers: Record<string, boolean>
+  apiKeyStatus: ApiKeyStatus | null
+  saveApiKey: (key: string) => Promise<void>
+  checkApiKey: () => Promise<void>
 }
 
 export function useCuquiApi(): CuquiApiState {
@@ -239,6 +242,43 @@ export function useCuquiApi(): CuquiApiState {
     }
   }, [])
 
+  const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null)
+
+  const checkApiKey = useCallback(async () => {
+    try {
+      const res = await fetch(`/settings/api-key?session_id=${encodeURIComponent(sessionId.current)}`)
+      if (res.ok) {
+        const data: ApiKeyStatus = await res.json()
+        setApiKeyStatus(data)
+      }
+    } catch {
+      console.warn('GET /settings/api-key failed')
+    }
+  }, [])
+
+  const saveApiKey = useCallback(async (key: string) => {
+    setError(null)
+    try {
+      const res = await fetch('/settings/api-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId.current, api_key: key }),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        setError(body.message ?? 'Error al guardar la API key')
+        return
+      }
+      await checkApiKey()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error de red')
+    }
+  }, [checkApiKey])
+
+  useEffect(() => {
+    checkApiKey()
+  }, [checkApiKey])
+
   return {
     timers,
     connectionStatus,
@@ -252,5 +292,8 @@ export function useCuquiApi(): CuquiApiState {
     cancelTimer,
     deleteTimer,
     loadingTimers,
+    apiKeyStatus,
+    saveApiKey,
+    checkApiKey,
   }
 }

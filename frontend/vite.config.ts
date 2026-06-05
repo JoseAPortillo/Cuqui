@@ -57,6 +57,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/commands': 'http://localhost:8000',
+      '/settings': 'http://localhost:8000',
       '/timers': 'http://localhost:8000',
       '/ws': {
         target: 'ws://localhost:8000',

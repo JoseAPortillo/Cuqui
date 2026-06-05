@@ -22,9 +22,9 @@ via ``app.dependency_overrides``.
 
 from __future__ import annotations
 
-from fastapi import Request
 from starlette.requests import HTTPConnection
 
+from cuqui.adapters.storage_sqlite import SqliteTimerStore
 from cuqui.application.manage_timers import TimerManager
 from cuqui.application.sync_state import SyncService
 from cuqui.ports.intent_parser import IntentParser
@@ -35,6 +35,7 @@ __all__ = [
     "get_speech_to_text",
     "get_sync_service",
     "get_timer_manager",
+    "get_timer_store",
 ]
 
 
@@ -56,3 +57,8 @@ def get_intent_parser(conn: HTTPConnection) -> IntentParser:
 def get_speech_to_text(conn: HTTPConnection) -> SpeechToText:
     """Return the ``SpeechToText`` singleton from app state."""
     return conn.app.state.speech_to_text
+
+
+def get_timer_store(conn: HTTPConnection) -> SqliteTimerStore:
+    """Return the ``SqliteTimerStore`` singleton from app state."""
+    return conn.app.state.timer_store
