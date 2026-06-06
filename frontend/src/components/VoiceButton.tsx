@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
+import { getFriendlyError } from '../utils/errorMessages'
+import type { FriendlyError } from '../utils/errorMessages'
 
 interface VoiceButtonProps {
   onAudio: (blob: Blob) => Promise<void>
@@ -9,17 +11,30 @@ function isMediaRecorderSupported(): boolean {
   return typeof MediaRecorder !== 'undefined'
 }
 
+const MIN_AUDIO_SIZE = 1024
+
 export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
   const [recording, setRecording] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setVoiceError] = useState<FriendlyError | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const [supported] = useState(isMediaRecorderSupported)
 
   const handleStart = useCallback(async () => {
-    setError(null)
+    setVoiceError(null)
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setVoiceError(getFriendlyError('mic_not_available'))
+        return
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (!stream.getAudioTracks().length) {
+        stream.getTracks().forEach((t) => t.stop())
+        setVoiceError(getFriendlyError('mic_not_available'))
+        return
+      }
+
       const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : 'audio/webm'
@@ -34,7 +49,13 @@ export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
         stream.getTracks().forEach((t) => t.stop())
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType })
         if (blob.size > 0) {
+          if (blob.size < MIN_AUDIO_SIZE) {
+            setVoiceError(getFriendlyError('recording_empty'))
+            return
+          }
           await onAudio(blob)
+        } else {
+          setVoiceError(getFriendlyError('recording_empty'))
         }
       }
 
@@ -43,12 +64,14 @@ export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
       setRecording(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('Permission')) {
-        setError('Permiso de micrófono denegado')
+      if (msg.includes('Permission') || msg.includes('permission')) {
+        setVoiceError(getFriendlyError('mic_permission_denied'))
+      } else if (msg.includes('NotFoundError') || msg.includes('not found')) {
+        setVoiceError(getFriendlyError('mic_not_available'))
       } else if (msg.includes('secure')) {
-        setError('Se requiere HTTPS para usar el micrófono')
+        setVoiceError(getFriendlyError('mic_https_required'))
       } else {
-        setError('Error al acceder al micrófono')
+        setVoiceError(getFriendlyError('mic_not_available'))
       }
     }
   }, [onAudio])
@@ -85,7 +108,11 @@ export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
       <span className="voice-btn__label">
         {recording ? 'Grabando... suelta para enviar' : 'Presiona y habla'}
       </span>
-      {error && <span className="voice-btn__error">{error}</span>}
+      {error && (
+        <div className={`voice-btn__error voice-btn__error--${error.kind}`}>
+          {error.message}
+        </div>
+      )}
     </div>
   )
 }

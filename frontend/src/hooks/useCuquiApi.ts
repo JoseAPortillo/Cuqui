@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ApiKeyStatus, ConnectionStatus, Timer, TimerAlert } from '../types/timer'
+import { getErrorCodeFromBody, getFriendlyError } from '../utils/errorMessages'
+import type { FriendlyError } from '../utils/errorMessages'
 
 function generateId(): string {
   return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)
@@ -22,7 +24,7 @@ interface CuquiApiState {
   sendCommand: (text: string) => Promise<void>
   sendAudio: (audioBlob: Blob) => Promise<void>
   dismissAlert: (timerId: string) => void
-  error: string | null
+  error: FriendlyError | null
   pauseTimer: (timerId: string) => Promise<void>
   resumeTimer: (timerId: string) => Promise<void>
   cancelTimer: (timerId: string) => Promise<void>
@@ -39,7 +41,7 @@ export function useCuquiApi(): CuquiApiState {
   const [timers, setTimers] = useState<Record<string, Timer>>({})
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
   const [alerts, setAlerts] = useState<TimerAlert[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const [error, setApiError] = useState<FriendlyError | null>(null)
   const [loadingTimers, setLoadingTimers] = useState<Record<string, boolean>>({})
   const prevTimersRef = useRef<Record<string, Timer>>({})
 
@@ -56,7 +58,7 @@ export function useCuquiApi(): CuquiApiState {
 
     ws.onopen = () => {
       setConnectionStatus('connected')
-      setError(null)
+      setApiError(null)
     }
 
     ws.onmessage = (event) => {
@@ -127,7 +129,7 @@ export function useCuquiApi(): CuquiApiState {
   }, [timers])
 
   const sendCommand = useCallback(async (text: string) => {
-    setError(null)
+    setApiError(null)
     try {
       const res = await fetch('/commands/text', {
         method: 'POST',
@@ -137,7 +139,8 @@ export function useCuquiApi(): CuquiApiState {
 
       if (!res.ok) {
         const body = await res.json()
-        setError(body.message ?? body.error ?? 'Error desconocido')
+        const code = getErrorCodeFromBody(body)
+        setApiError(getFriendlyError(code, body.message))
         return
       }
 
@@ -148,13 +151,13 @@ export function useCuquiApi(): CuquiApiState {
         console.log('[sendCommand] prev state:', prev, '-> merging:', timer.id, timer.status)
         return { ...prev, [timer.id]: timer }
       })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de red')
+    } catch {
+      setApiError(getFriendlyError('network_error'))
     }
   }, [])
 
   const sendAudio = useCallback(async (audioBlob: Blob) => {
-    setError(null)
+    setApiError(null)
     try {
       const formData = new FormData()
       formData.append('audio', audioBlob, 'recording.wav')
@@ -167,14 +170,15 @@ export function useCuquiApi(): CuquiApiState {
 
       if (!res.ok) {
         const body = await res.json()
-        setError(body.message ?? body.error ?? 'Error de transcripción')
+        const code = getErrorCodeFromBody(body)
+        setApiError(getFriendlyError(code, body.message))
         return
       }
 
       const timer: Timer = await res.json()
       setTimers((prev) => ({ ...prev, [timer.id]: timer }))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de red')
+    } catch {
+      setApiError(getFriendlyError('network_error'))
     }
   }, [])
 
@@ -184,7 +188,7 @@ export function useCuquiApi(): CuquiApiState {
 
   const timerAction = useCallback(
     async (timerId: string, action: 'pause' | 'resume' | 'cancel') => {
-      setError(null)
+      setApiError(null)
       setLoadingTimers((prev) => ({ ...prev, [timerId]: true }))
       try {
         const res = await fetch(`/timers/${timerId}/${action}`, {
@@ -195,14 +199,15 @@ export function useCuquiApi(): CuquiApiState {
 
         if (!res.ok) {
           const body = await res.json()
-          setError(body.message ?? body.error ?? `Error al ${action === 'pause' ? 'pausar' : action === 'resume' ? 'reanudar' : 'cancelar'}`)
+          const code = getErrorCodeFromBody(body)
+          setApiError(getFriendlyError(code, body.message))
           return
         }
 
         const timer: Timer = await res.json()
         setTimers((prev) => ({ ...prev, [timer.id]: timer }))
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error de red')
+      } catch {
+        setApiError(getFriendlyError('network_error'))
       } finally {
         setLoadingTimers((prev) => {
           const next = { ...prev }
@@ -219,7 +224,7 @@ export function useCuquiApi(): CuquiApiState {
   const cancelTimer = useCallback((timerId: string) => timerAction(timerId, 'cancel'), [timerAction])
 
   const deleteTimer = useCallback(async (timerId: string) => {
-    setError(null)
+    setApiError(null)
     const sid = sessionId.current
     try {
       const res = await fetch(`/timers/${timerId}?session_id=${encodeURIComponent(sid)}`, {
@@ -228,7 +233,8 @@ export function useCuquiApi(): CuquiApiState {
 
       if (!res.ok) {
         const body = await res.json()
-        setError(body.message ?? body.error ?? 'Error al eliminar')
+        const code = getErrorCodeFromBody(body)
+        setApiError(getFriendlyError(code, body.message))
         return
       }
 
@@ -237,8 +243,8 @@ export function useCuquiApi(): CuquiApiState {
         delete next[timerId]
         return next
       })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de red')
+    } catch {
+      setApiError(getFriendlyError('network_error'))
     }
   }, [])
 
@@ -257,7 +263,7 @@ export function useCuquiApi(): CuquiApiState {
   }, [])
 
   const saveApiKey = useCallback(async (key: string) => {
-    setError(null)
+    setApiError(null)
     try {
       const res = await fetch('/settings/api-key', {
         method: 'POST',
@@ -265,13 +271,12 @@ export function useCuquiApi(): CuquiApiState {
         body: JSON.stringify({ session_id: sessionId.current, api_key: key }),
       })
       if (!res.ok) {
-        const body = await res.json()
-        setError(body.message ?? 'Error al guardar la API key')
+        setApiError(getFriendlyError('api_key_error'))
         return
       }
       await checkApiKey()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de red')
+    } catch {
+      setApiError(getFriendlyError('network_error'))
     }
   }, [checkApiKey])
 

@@ -52,8 +52,9 @@ export default function App() {
       </button>
 
       {error && (
-        <div className="error-banner">
-          {error}
+        <div className={`error-banner error-banner--${error.kind}`}>
+          <div className="error-banner__title">{error.title}</div>
+          <div className="error-banner__message">{error.message}</div>
         </div>
       )}
 
