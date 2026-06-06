@@ -19,9 +19,11 @@ TimerListResponse:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 __all__ = [
+    "ApiKeyRequest",
+    "ApiKeyResponse",
     "CommandRequest",
     "DomainErrorResponse",
     "ParseErrorResponse",
@@ -68,6 +70,20 @@ class DomainErrorResponse(BaseModel):
 
     error: str = "domain_error"
     message: str
+
+
+class ApiKeyRequest(BaseModel):
+    """Body contract for ``POST /settings/api-key``."""
+
+    session_id: str
+    api_key: str
+
+
+class ApiKeyResponse(BaseModel):
+    """Response for API key status."""
+
+    has_key: bool
+    masked_key: str | None = None
 
 
 TimerListResponse = list[TimerResponse]

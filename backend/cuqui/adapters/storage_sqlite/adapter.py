@@ -50,10 +50,10 @@ def _row_to_timer(data: dict[str, Any]) -> Timer:
 
 
 class SqliteTimerStore:
-    """SQLite-persisted store for timer state per session.
+    """SQLite-persisted store for timer state and API keys per session.
 
-    Creates the ``timers`` table on first use.  Single-file, no external
-    dependencies beyond Python's stdlib ``sqlite3`` module.
+    Creates the ``timers`` and ``api_keys`` tables on first use.  Single-file,
+    no external dependencies beyond Python's stdlib ``sqlite3`` module.
 
     Thread-safety is **not** guaranteed — this adapter assumes
     single-process, single-event-loop usage (the same as
@@ -72,6 +72,12 @@ class SqliteTimerStore:
                 timer_id   TEXT NOT NULL,
                 data       TEXT NOT NULL,
                 PRIMARY KEY (session_id, timer_id)
+            )"""
+        )
+        self._conn.execute(
+            """CREATE TABLE IF NOT EXISTS api_keys (
+                session_id TEXT PRIMARY KEY,
+                api_key    TEXT NOT NULL
             )"""
         )
         self._conn.commit()
@@ -99,6 +105,21 @@ class SqliteTimerStore:
                 (session_id, timer.id, json.dumps(_timer_to_row(timer))),
             )
         self._conn.commit()
+
+    def save_api_key(self, session_id: str, api_key: str) -> None:
+        self._conn.execute(
+            "INSERT OR REPLACE INTO api_keys (session_id, api_key) VALUES (?, ?)",
+            (session_id, api_key),
+        )
+        self._conn.commit()
+
+    def get_api_key(self, session_id: str) -> str | None:
+        cursor = self._conn.execute(
+            "SELECT api_key FROM api_keys WHERE session_id = ?",
+            (session_id,),
+        )
+        row = cursor.fetchone()
+        return row[0] if row else None
 
     def list_sessions(self) -> list[str]:
         cursor = self._conn.execute("SELECT DISTINCT session_id FROM timers")

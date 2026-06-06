@@ -28,32 +28,44 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
-from fastapi import APIRouter, Depends, FastAPI, File, Form, Query, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    Query,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-
-from cuqui.application.manage_timers import TimerManager
-from cuqui.application.process_command import process_command
-from cuqui.application.sync_state import SyncService
-from cuqui.ports.intent_parser import IntentParser
-from cuqui.ports.speech_to_text import SpeechToText
-from cuqui.domain.commands import CuquiCommand
-from cuqui.domain.parser import ParseError
-from cuqui.domain.timer import Timer
 
 from cuqui.adapters.api_fastapi.dependencies import (
     get_intent_parser,
     get_speech_to_text,
     get_sync_service,
     get_timer_manager,
+    get_timer_store,
 )
 from cuqui.adapters.api_fastapi.schemas import (
+    ApiKeyRequest,
+    ApiKeyResponse,
     CommandRequest,
     DomainErrorResponse,
     ParseErrorResponse,
     TimerActionRequest,
     TimerResponse,
 )
+from cuqui.adapters.storage_sqlite import SqliteTimerStore
+from cuqui.application.manage_timers import TimerManager
+from cuqui.application.process_command import process_command
+from cuqui.application.sync_state import SyncService
+from cuqui.domain.parser import ParseError
+from cuqui.domain.timer import Timer
+from cuqui.ports.intent_parser import IntentParser
+from cuqui.ports.speech_to_text import SpeechToText
 
 __all__ = [
     "create_app",
@@ -176,6 +188,7 @@ async def post_audio_command(
     intent_parser: IntentParser = Depends(get_intent_parser),
     sync_service: SyncService = Depends(get_sync_service),
     speech_to_text: SpeechToText = Depends(get_speech_to_text),
+    store: SqliteTimerStore = Depends(get_timer_store),
 ) -> Any:
     """Accept an audio recording, transcribe, parse, and execute.
 
@@ -203,8 +216,11 @@ async def post_audio_command(
         )
 
     # 2. Transcribe
+    session_api_key = store.get_api_key(session_id)
     try:
-        text = await speech_to_text.transcribe(audio_bytes, audio.content_type)
+        text = await speech_to_text.transcribe(
+            audio_bytes, audio.content_type, session_api_key=session_api_key,
+        )
     except Exception as exc:
         return JSONResponse(
             status_code=400,
@@ -491,6 +507,48 @@ async def delete_timer(
     return {"status": "ok"}
 
 
+# ── POST /settings/api-key ─────────────────────────────────────────────────────
+
+
+@router.post(
+    "/settings/api-key",
+    responses={
+        200: {"description": "API key saved"},
+    },
+)
+async def set_api_key(
+    body: ApiKeyRequest,
+    store: SqliteTimerStore = Depends(get_timer_store),
+) -> dict[str, str]:
+    """Save or update the OpenAI API key for *session_id*."""
+    store.save_api_key(body.session_id, body.api_key)
+    return {"status": "ok"}
+
+
+# ── GET /settings/api-key ─────────────────────────────────────────────────────
+
+
+@router.get(
+    "/settings/api-key",
+    responses={
+        200: {"model": ApiKeyResponse, "description": "API key status"},
+    },
+)
+async def get_api_key(
+    session_id: str = Query(..., description="Session identifier"),
+    store: SqliteTimerStore = Depends(get_timer_store),
+) -> ApiKeyResponse:
+    """Check whether *session_id* has a saved API key.
+
+    Returns ``has_key`` boolean and a masked version of the key if set.
+    """
+    key = store.get_api_key(session_id)
+    if not key:
+        return ApiKeyResponse(has_key=False, masked_key=None)
+    masked = key[:4] + "…" + key[-4:] if len(key) > 8 else "…"
+    return ApiKeyResponse(has_key=True, masked_key=masked)
+
+
 # ── WS /ws/session/{session_id} ───────────────────────────────────────────────
 
 
@@ -527,15 +585,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     functions in ``dependencies.py`` can retrieve them.
     Also starts the background countdown tick.
     """
+    import logging
     import os
 
+    from cuqui.adapters.api_fastapi.security import SafeFormatter
     from cuqui.adapters.asr import SpeechToTextRouter
     from cuqui.adapters.asr_faster_whisper import FasterWhisperAdapter
     from cuqui.adapters.asr_openai import OpenAIWhisperAdapter
     from cuqui.adapters.parser_rules.adapter import TimerParserAdapter
     from cuqui.adapters.storage_sqlite import SqliteTimerStore
 
+    # Protect all logs against accidental credential leaks
+    root = logging.getLogger()
+    for handler in root.handlers:
+        fmt = handler.formatter._fmt if handler.formatter else "%(message)s"
+        handler.setFormatter(SafeFormatter(fmt))
+
     store = SqliteTimerStore(db_path="data/cuqui.db")
+    app.state.timer_store = store
     app.state.timer_manager = TimerManager(store=store)
     app.state.sync_service = SyncService()
     app.state.intent_parser = TimerParserAdapter(lang="es")
