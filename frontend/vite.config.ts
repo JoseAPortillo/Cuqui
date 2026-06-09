@@ -9,6 +9,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
         name: 'Cuqui',
@@ -32,25 +35,11 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https?:\/\/localhost:8000\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'cuqui-api',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24,
-              },
-            },
-          },
-        ],
       },
       devOptions: {
         enabled: true,
-        type: 'module',
       },
     }),
   ],

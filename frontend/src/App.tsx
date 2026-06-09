@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCuquiApi } from './hooks/useCuquiApi'
+import { useTimerNotifications } from './hooks/useTimerNotifications'
 import { TimerDashboard } from './components/TimerDashboard'
 import { VoiceButton } from './components/VoiceButton'
 import { AlertBanner } from './components/AlertBanner'
@@ -20,6 +21,17 @@ export default function App() {
   const { timers, connectionStatus, alerts, sendAudio, dismissAlert, error, pauseTimer, resumeTimer, cancelTimer, deleteTimer, loadingTimers, apiKeyStatus, saveApiKey } = useCuquiApi()
   const sessionId = getSessionId()
   const [showApiKey, setShowApiKey] = useState(false)
+
+  const { requestPermission } = useTimerNotifications({ timers })
+  const permissionRequested = useRef(false)
+
+  useEffect(() => {
+    const hasTimers = Object.keys(timers).length > 0
+    if (hasTimers && !permissionRequested.current) {
+      permissionRequested.current = true
+      requestPermission()
+    }
+  }, [timers, requestPermission])
 
   return (
     <div className="app">

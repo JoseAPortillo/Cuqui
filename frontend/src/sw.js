@@ -1,0 +1,90 @@
+self.__WB_MANIFEST
+
+const RUNNING_TIMERS = new Map()
+
+self.addEventListener('message', (event) => {
+  const { type, payload } = event.data || {}
+
+  switch (type) {
+    case 'TIMERS_SYNC':
+      syncTimers(payload?.timers || [])
+      break
+    case 'TIMER_COMPLETED':
+      clearTimer(payload?.id)
+      break
+    case 'TIMER_CANCELLED':
+      clearTimer(payload?.id)
+      break
+    case 'PING':
+      event.source?.postMessage({ type: 'PONG' })
+      break
+  }
+})
+
+function syncTimers(timers) {
+  clearAllTimers()
+
+  const now = Date.now()
+  for (const t of timers) {
+    if (t.status !== 'running') continue
+
+    const remainingMs = (t.remaining || 0) * 1000
+    if (remainingMs <= 0) continue
+
+    const timeout = setTimeout(() => fireNotification(t), remainingMs)
+    RUNNING_TIMERS.set(t.id, { name: t.name, timeout })
+  }
+}
+
+function fireNotification(timer) {
+  RUNNING_TIMERS.delete(timer.id)
+
+  self.registration.showNotification('\u23F0 \u00a1Tiempo cumplido!', {
+    body: `"${timer.name}" — el temporizador termin\u00f3.`,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [200, 100, 200],
+    tag: `timer-${timer.id}`,
+    renotify: true,
+    requireInteraction: true,
+    data: { timerId: timer.id, timerName: timer.name },
+  })
+}
+
+function clearTimer(id) {
+  const existing = RUNNING_TIMERS.get(id)
+  if (existing) {
+    clearTimeout(existing.timeout)
+    RUNNING_TIMERS.delete(id)
+  }
+}
+
+function clearAllTimers() {
+  for (const [, entry] of RUNNING_TIMERS) {
+    clearTimeout(entry.timeout)
+  }
+  RUNNING_TIMERS.clear()
+}
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+
+  const data = event.notification.data || {}
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if (client.url && 'focus' in client) {
+          client.postMessage({
+            type: 'TIMER_COMPLETED_FOCUS',
+            payload: { timerId: data.timerId, timerName: data.timerName },
+          })
+          return client.focus()
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('/')
+      }
+    }),
+  )
+})
