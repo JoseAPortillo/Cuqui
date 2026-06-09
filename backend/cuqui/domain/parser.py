@@ -139,7 +139,7 @@ class TimerParser:
         r"(?:timer\s+)?(?:for\s+)?"
         r"(\d+)\s*(minute|second|hour)?s?\s*"
         r"(?:timer\s+)?"
-        r"(?:(?:for|called)\s+(.+))?",
+        r"(?:(?:for|called)\s+)?(.+)?",
         re.IGNORECASE,
     )
 
@@ -162,7 +162,7 @@ class TimerParser:
         r"(?:add|extend)(?:\s+by)?\s+"
         r"(\d+)\s*(?:more\s+)?"
         r"(minute|second|hour)?s?\s*"
-        r"(?:to\s+(.+))?",
+        r"(?:to\s+)?(.+)?",
         re.IGNORECASE,
     )
 
@@ -170,7 +170,7 @@ class TimerParser:
         r"(?:reduce|subtract)(?:\s+by)?\s+"
         r"(\d+)\s*(?:more\s+)?"
         r"(minute|second|hour)?s?\s*"
-        r"(?:from\s+(.+))?",
+        r"(?:from\s+)?(.+)?",
         re.IGNORECASE,
     )
 
@@ -197,7 +197,7 @@ class TimerParser:
         r"(?:temporizador\s+)?(?:de\s+|para\s+)?"
         r"(\d+|un(?:a|o)?)\s*(minuto|segundo|hora|d(?:í|i)a)?s?\s*"
         r"(?:temporizador\s+)?"
-        r"(?:(?:para|llamado|a)\s+(.+))?",
+        r"(?:(?:para|llamado|a)\s+)?(.+)?",
         re.IGNORECASE,
     )
 
@@ -254,7 +254,7 @@ class TimerParser:
         r"(?:le\s+)?\s*"
         r"(\d+|un(?:a|o)?)\s*(?:más\s+)?"
         r"(minuto|segundo|hora|d(?:í|i)a)s?\s*"
-        r"(?:(?:a|para|al)\s+(.+))?",
+        r"(?:(?:a|para|al)\s+)?(.+)?",
         re.IGNORECASE,
     )
 
@@ -262,7 +262,7 @@ class TimerParser:
         r"(?:reduc(?:ir|í|e)|rest(?:ar|á|a)|quit(?:ar|á|a))(?:le\s+)?\s*"
         r"(\d+|un(?:a|o)?)\s*(?:más\s+)?"
         r"(minuto|segundo|hora|d(?:í|i)a)s?\s*"
-        r"(?:(?:a|para|al)\s+(.+))?",
+        r"(?:(?:a|para|al)\s+)?(.+)?",
         re.IGNORECASE,
     )
 

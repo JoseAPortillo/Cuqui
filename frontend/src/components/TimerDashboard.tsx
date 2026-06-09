@@ -18,7 +18,7 @@ export function TimerDashboard({ timers, onPause, onResume, onCancel, onDelete, 
       <div className="dashboard-empty">
         <p>No hay temporizadores activos</p>
         <p className="dashboard-empty__hint">
-          Presioná el botón y hablá, por ejemplo <em>"pon 10 minutos para la pasta"</em>
+          Presioná el botón y hablá, por ejemplo <em>"poner 10 minutos para la pasta"</em>
         </p>
       </div>
     )

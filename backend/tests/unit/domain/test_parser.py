@@ -244,6 +244,35 @@ class TestTimerParserEnglishEdgeCases:
         result = self.parser.parse("when is the pasta done")
         assert isinstance(result, QueryTimerCommand)
 
+    # ── ASR robustness: preposition-optional name capture ──────────────────
+
+    def test_set_timer_en_without_for(self) -> None:
+        """GIVEN "set 10 minutes pasta" (ASR dropped "for")
+        THEN SET_TIMER SHALL capture name even without preposition.
+        """
+        result = self.parser.parse("set 10 minutes pasta")
+        assert isinstance(result, SetTimerCommand)
+        assert result.duration == 600
+        assert result.name == "pasta"
+
+    def test_extend_timer_en_without_to(self) -> None:
+        """GIVEN "add 5 minutes the steak" (ASR dropped "to")
+        THEN EXTEND_TIMER SHALL capture name.
+        """
+        result = self.parser.parse("add 5 minutes the steak")
+        assert isinstance(result, ExtendTimerCommand)
+        assert result.duration == 300
+        assert result.name == "the steak"
+
+    def test_reduce_timer_en_without_from(self) -> None:
+        """GIVEN "reduce 2 minutes the steak" (ASR dropped "from")
+        THEN REDUCE_TIMER SHALL capture name.
+        """
+        result = self.parser.parse("reduce 2 minutes the steak")
+        assert isinstance(result, ReduceTimerCommand)
+        assert result.duration == 120
+        assert result.name == "the steak"
+
 
 # ── Spanish tests ──────────────────────────────────────────────────────────────
 
@@ -551,3 +580,50 @@ class TestTimerParserSpanishEdgeCases:
         assert result.duration == 60
         assert result.unit == "minutes"
         assert result.name == "la pasta"
+
+    # ── ASR robustness: preposition-optional name capture ──────────────────
+
+    def test_set_timer_es_sin_preposicion(self) -> None:
+        """GIVEN "poner 10 minutos las patatas" (ASR dropped "a")
+        THEN SET_TIMER SHALL capture name even without preposition.
+        """
+        result = self.parser.parse("poner 10 minutos las patatas")
+        assert isinstance(result, SetTimerCommand)
+        assert result.duration == 600
+        assert result.name == "las patatas"
+
+    def test_set_timer_es_sin_prep_ni_articulo(self) -> None:
+        """GIVEN "poner 5 minutos pasta" (ASR dropped "a la")
+        THEN SET_TIMER SHALL capture whatever remains as name.
+        """
+        result = self.parser.parse("poner 5 minutos pasta")
+        assert isinstance(result, SetTimerCommand)
+        assert result.duration == 300
+        assert result.name == "pasta"
+
+    def test_set_timer_es_sin_nombre(self) -> None:
+        """GIVEN "poner 10 minutos" (no name at all)
+        THEN SET_TIMER SHALL keep name=None (→ "last" in application layer).
+        """
+        result = self.parser.parse("poner 10 minutos")
+        assert isinstance(result, SetTimerCommand)
+        assert result.duration == 600
+        assert result.name is None
+
+    def test_extend_timer_es_sin_preposicion(self) -> None:
+        """GIVEN "agregar 5 minutos las patatas" (ASR dropped "a")
+        THEN EXTEND_TIMER SHALL capture name.
+        """
+        result = self.parser.parse("agregar 5 minutos las patatas")
+        assert isinstance(result, ExtendTimerCommand)
+        assert result.duration == 300
+        assert result.name == "las patatas"
+
+    def test_reduce_timer_es_sin_preposicion(self) -> None:
+        """GIVEN "quitar 2 minutos las patatas" (ASR dropped "a")
+        THEN REDUCE_TIMER SHALL capture name.
+        """
+        result = self.parser.parse("quitar 2 minutos las patatas")
+        assert isinstance(result, ReduceTimerCommand)
+        assert result.duration == 120
+        assert result.name == "las patatas"
