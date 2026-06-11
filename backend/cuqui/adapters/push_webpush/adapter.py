@@ -128,6 +128,8 @@ class WebPushAdapter:
                         vapid_private_key=self._private_key,
                         vapid_claims=self._vapid_claims,
                         timeout=5.0,
+                        ttl=86400,
+                        headers={"Urgency": "high"},
                     ),
                     timeout=10.0,
                 )

@@ -25,6 +25,7 @@ Error handling
 from __future__ import annotations
 
 import asyncio
+import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -688,11 +689,12 @@ async def _run_tick(app: FastAPI) -> None:
             if push_service:
                 for tid, timer in changed[sid].items():
                     if timer.status == TimerStatus.COMPLETED:
+                        seq = int(time.time() * 1000)
                         asyncio.create_task(push_service.send(
                             sid,
                             title="\u23F0 \u00a1Tiempo cumplido!",
                             body=f'"{timer.name}" — el temporizador termin\u00f3.',
-                            tag=f"timer-{tid}",
+                            tag=f"timer-{tid}-{seq}",
                             data={"timerId": tid, "timerName": timer.name},
                         ))
 
