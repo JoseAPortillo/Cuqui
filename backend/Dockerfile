@@ -29,7 +29,9 @@ RUN pip install --no-cache-dir \
     "pydantic>=2.0" \
     "python-multipart>=0.0.18" \
     "faster-whisper>=1.0" \
-    "openai>=1.0"
+    "openai>=1.0" \
+    "pywebpush>=1.14" \
+    "cryptography>=42.0"
 
 # Copy backend source (excluding tests)
 COPY backend/cuqui/ ./cuqui/

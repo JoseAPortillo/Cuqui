@@ -2,6 +2,28 @@ self.__WB_MANIFEST
 
 const RUNNING_TIMERS = new Map()
 
+self.addEventListener('push', (event) => {
+  let data = { title: '\u23F0 \u00a1Tiempo cumplido!', body: '', tag: 'cuqui-push', data: {} }
+  if (event.data) {
+    try {
+      data = event.data.json()
+    } catch { /* use defaults */ }
+  }
+
+  const options = {
+    body: data.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [200, 100, 200],
+    tag: data.tag || 'cuqui-push',
+    renotify: true,
+    requireInteraction: true,
+    data: data.data || {},
+  }
+
+  event.waitUntil(self.registration.showNotification(data.title, options))
+})
+
 self.addEventListener('message', (event) => {
   const { type, payload } = event.data || {}
 
