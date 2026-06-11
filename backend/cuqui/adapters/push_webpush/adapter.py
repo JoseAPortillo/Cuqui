@@ -10,8 +10,6 @@ from pathlib import Path
 from cryptography.hazmat.primitives import asymmetric, serialization
 from pywebpush import WebPushException, webpush
 
-from cuqui.ports.push_notification import PushNotification
-
 log = logging.getLogger(__name__)
 
 _VAPID_KEYS_FILE = "data/vapid_keys.json"
@@ -64,20 +62,32 @@ class WebPushAdapter:
     def __init__(self) -> None:
         self._private_key, self._public_key = _load_or_generate_keys()
         self._vapid_claims = {"sub": os.getenv("VAPID_CLAIMS_EMAIL", "mailto:cuqui@app.local")}
-        self._subscriptions: dict[str, list[dict]] = {}
+        self._subscriptions: dict[str, dict[str, dict]] = {}
+        log.info(
+            "WebPushAdapter initialized (public key hash: %s...)",
+            self._public_key[:16] if self._public_key else "NONE",
+        )
 
     def vapid_public_key(self) -> str | None:
         return self._public_key
 
     def save_subscription(self, session_id: str, subscription: dict) -> None:
-        self._subscriptions.setdefault(session_id, []).append(subscription)
+        self._subscriptions.setdefault(session_id, {})[subscription["endpoint"]] = subscription
+        log.info(
+            "Push subscription saved for session=%s endpoint=...%s (total: %d)",
+            session_id,
+            subscription["endpoint"][-16:],
+            len(self._subscriptions[session_id]),
+        )
 
     def remove_subscription(self, session_id: str, endpoint: str) -> None:
-        subs = self._subscriptions.get(session_id, [])
-        self._subscriptions[session_id] = [s for s in subs if s["endpoint"] != endpoint]
+        subs = self._subscriptions.get(session_id, {})
+        if endpoint in subs:
+            del subs[endpoint]
+            log.info("Push subscription removed for session=%s", session_id)
 
     def get_subscriptions(self, session_id: str) -> list[dict]:
-        return list(self._subscriptions.get(session_id, []))
+        return list(self._subscriptions.get(session_id, {}).values())
 
     async def send(
         self,
@@ -89,6 +99,7 @@ class WebPushAdapter:
     ) -> None:
         subscriptions = self.get_subscriptions(session_id)
         if not subscriptions:
+            log.debug("No push subscriptions for session=%s, skipping", session_id)
             return
 
         payload = json.dumps({
@@ -97,6 +108,12 @@ class WebPushAdapter:
             "tag": tag or "cuqui-timer",
             "data": data or {},
         }).encode("utf-8")
+
+        log.info(
+            "Sending push to session=%s (%d subscription(s))",
+            session_id,
+            len(subscriptions),
+        )
 
         for sub in subscriptions:
             try:
@@ -114,9 +131,10 @@ class WebPushAdapter:
                     ),
                     timeout=10.0,
                 )
+                log.debug("Push sent successfully to ...%s", sub["endpoint"][-16:])
             except (WebPushException, asyncio.TimeoutError) as exc:
-                if exc.response and exc.response.status_code == 410:
-                    log.info("Removing expired push subscription: %s", sub["endpoint"])
+                if isinstance(exc, WebPushException) and exc.response and exc.response.status_code == 410:
+                    log.info("Removing expired push subscription ...%s", sub["endpoint"][-16:])
                     self.remove_subscription(session_id, sub["endpoint"])
                 else:
-                    log.warning("WebPush send failed for %s: %s", sub["endpoint"], exc)
+                    log.warning("Push send failed for ...%s: %s", sub["endpoint"][-16:], exc)

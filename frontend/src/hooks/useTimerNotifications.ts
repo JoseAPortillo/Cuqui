@@ -20,6 +20,44 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return view as Uint8Array<ArrayBuffer>
 }
 
+async function registerPush(sessionId: string): Promise<void> {
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const existing = await reg.pushManager.getSubscription()
+
+    const sub = existing
+      ? existing
+      : await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(
+            await fetchVapidKey(),
+          ),
+        })
+
+    const subJSON = sub.toJSON()
+    await fetch('/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        endpoint: subJSON.endpoint,
+        p256dh: subJSON.keys?.p256dh || '',
+        auth: subJSON.keys?.auth || '',
+      }),
+    })
+  } catch {
+    /* push subscription failed — app still works via SW timer sync */
+  }
+}
+
+async function fetchVapidKey(): Promise<string> {
+  const res = await fetch('/push/vapid-public-key')
+  if (!res.ok) throw new Error('Failed to fetch VAPID key')
+  const { public_key } = await res.json()
+  if (!public_key) throw new Error('No VAPID public key')
+  return public_key
+}
+
 interface UseTimerNotificationsOptions {
   timers: Record<string, Timer>
 }
@@ -28,7 +66,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
   const swReady = useRef(false)
   const timersRef = useRef(timers)
   const pingInterval = useRef<ReturnType<typeof setInterval> | null>(null)
-  const subscribed = useRef(false)
+  const pushRegistered = useRef(false)
 
   timersRef.current = timers
 
@@ -44,57 +82,21 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     sendToSW('TIMERS_SYNC', { timers: running })
   }, [sendToSW])
 
-  const subscribeToPush = useCallback(async () => {
-    if (subscribed.current) return
-    try {
-      const reg = await navigator.serviceWorker.ready
-      const existing = await reg.pushManager.getSubscription()
-      if (existing) {
-        subscribed.current = true
-        return
-      }
-
-      const res = await fetch('/push/vapid-public-key')
-      if (!res.ok) return
-      const { public_key } = await res.json()
-      if (!public_key) return
-
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(public_key),
-      })
-
-      const subJSON = sub.toJSON()
-      await fetch('/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: getSessionId(),
-          endpoint: subJSON.endpoint,
-          p256dh: subJSON.keys?.p256dh || '',
-          auth: subJSON.keys?.auth || '',
-        }),
-      })
-
-      subscribed.current = true
-    } catch {
-      /* push subscription failed — app still works via SW timer sync */
-    }
-  }, [])
-
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!('Notification' in window)) return false
-    if (Notification.permission === 'granted') {
-      subscribeToPush()
-      return true
-    }
     if (Notification.permission === 'denied') return false
-    const result = await Notification.requestPermission()
-    if (result === 'granted') {
-      subscribeToPush()
+
+    const result = Notification.permission === 'granted'
+      ? 'granted'
+      : await Notification.requestPermission()
+
+    if (result === 'granted' && !pushRegistered.current) {
+      pushRegistered.current = true
+      registerPush(getSessionId())
     }
+
     return result === 'granted'
-  }, [subscribeToPush])
+  }, [])
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -118,7 +120,10 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     function onReady() {
       swReady.current = true
       syncTimers()
-      subscribeToPush()
+      if (!pushRegistered.current) {
+        pushRegistered.current = true
+        registerPush(getSessionId())
+      }
     }
 
     if (navigator.serviceWorker.controller) {
@@ -127,7 +132,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
 
     navigator.serviceWorker.addEventListener('controllerchange', onReady)
     return () => navigator.serviceWorker.removeEventListener('controllerchange', onReady)
-  }, [syncTimers, subscribeToPush])
+  }, [syncTimers])
 
   useEffect(() => {
     if (!swReady.current) return
