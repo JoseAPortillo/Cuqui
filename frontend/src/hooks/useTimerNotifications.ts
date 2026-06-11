@@ -62,13 +62,51 @@ interface UseTimerNotificationsOptions {
   timers: Record<string, Timer>
 }
 
+const ALARM_LOOP_MS = 900
+
 export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) {
   const swReady = useRef(false)
   const timersRef = useRef(timers)
   const pingInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const pushRegistered = useRef(false)
+  const playingAlarms = useRef(new Set<string>())
+  const alarmIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
 
   timersRef.current = timers
+
+  function playAlarm(timerId: string) {
+    if (playingAlarms.current.has(timerId)) return
+    playingAlarms.current.add(timerId)
+
+    function playChime() {
+      try {
+        const audio = new Audio(CHIME_DATA_URI)
+        audio.volume = 0.7
+        audio.play().catch(() => {})
+      } catch { /* ignore */ }
+    }
+
+    playChime()
+    const interval = setInterval(playChime, ALARM_LOOP_MS)
+    alarmIntervals.current.set(timerId, interval)
+  }
+
+  const stopAlarm = useCallback((timerId: string) => {
+    const interval = alarmIntervals.current.get(timerId)
+    if (interval) {
+      clearInterval(interval)
+      alarmIntervals.current.delete(timerId)
+    }
+    playingAlarms.current.delete(timerId)
+  }, [])
+
+  const stopAllAlarms = useCallback(() => {
+    for (const [, interval] of alarmIntervals.current) {
+      clearInterval(interval)
+    }
+    alarmIntervals.current.clear()
+    playingAlarms.current.clear()
+  }, [])
 
   const sendToSW = useCallback((type: string, payload?: unknown) => {
     const controller = navigator.serviceWorker?.controller
@@ -100,8 +138,12 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      const { type } = event.data || {}
-      if (type === 'TIMER_COMPLETED_FOCUS') {
+      const { type, payload } = event.data || {}
+      if (type === 'SHOW_ALARM' && payload?.timerId) {
+        playAlarm(payload.timerId)
+      } else if (type === 'STOP_ALARM' && payload?.timerId) {
+        stopAlarm(payload.timerId)
+      } else if (type === 'TIMER_COMPLETED_FOCUS') {
         try {
           const audio = new Audio(CHIME_DATA_URI)
           audio.volume = 0.5
@@ -137,6 +179,13 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
   useEffect(() => {
     if (!swReady.current) return
     syncTimers()
+
+    const timerIds = new Set(Object.keys(timers))
+    for (const alarmId of playingAlarms.current) {
+      if (!timerIds.has(alarmId)) {
+        stopAlarm(alarmId)
+      }
+    }
   }, [timers, syncTimers])
 
   useEffect(() => {
@@ -161,5 +210,5 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     }
   }, [timers, sendToSW])
 
-  return { requestPermission }
+  return { requestPermission, stopAllAlarms, stopAlarm }
 }

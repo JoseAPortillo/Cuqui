@@ -22,15 +22,20 @@ self.addEventListener('push', (event) => {
     data: data.data || {},
   }
 
-  // Direct vibration fallback for environments where showNotification vibrate is ignored
-  if (navigator.vibrate) {
-    navigator.vibrate([200, 100, 200, 100, 300])
-  }
+  const broadcastAlarm = clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    for (const client of list) {
+      client.postMessage({
+        type: 'SHOW_ALARM',
+        payload: { timerId: data.data?.timerId, timerName: data.data?.timerName },
+      })
+    }
+  })
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options).catch(() => {
-      /* notification may fail silently (e.g. quota exceeded) */
-    }),
+    Promise.all([
+      self.registration.showNotification(data.title, options).catch(() => {}),
+      broadcastAlarm,
+    ]),
   )
 })
 
@@ -71,21 +76,29 @@ function syncTimers(timers) {
 function fireNotification(timer) {
   RUNNING_TIMERS.delete(timer.id)
 
-  if (navigator.vibrate) {
-    navigator.vibrate([200, 100, 200, 100, 300])
-  }
+  const broadcastAlarm = clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    for (const client of list) {
+      client.postMessage({
+        type: 'SHOW_ALARM',
+        payload: { timerId: timer.id, timerName: timer.name },
+      })
+    }
+  })
 
-  self.registration.showNotification('\u23F0 \u00a1Tiempo cumplido!', {
-    body: `"${timer.name}" — el temporizador termin\u00f3.`,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    vibrate: [200, 100, 200, 100, 300],
-    tag: `timer-${timer.id}`,
-    renotify: true,
-    requireInteraction: true,
-    silent: false,
-    data: { timerId: timer.id, timerName: timer.name },
-  }).catch(() => { /* ignore */ })
+  Promise.all([
+    self.registration.showNotification('\u23F0 \u00a1Tiempo cumplido!', {
+      body: `"${timer.name}" — el temporizador termin\u00f3.`,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      vibrate: [200, 100, 200, 100, 300],
+      tag: `timer-${timer.id}`,
+      renotify: true,
+      requireInteraction: true,
+      silent: false,
+      data: { timerId: timer.id, timerName: timer.name },
+    }).catch(() => {}),
+    broadcastAlarm,
+  ])
 }
 
 function clearTimer(id) {
@@ -112,6 +125,10 @@ self.addEventListener('notificationclick', (event) => {
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const client of list) {
         if (client.url && 'focus' in client) {
+          client.postMessage({
+            type: 'STOP_ALARM',
+            payload: { timerId: data.timerId },
+          })
           client.postMessage({
             type: 'TIMER_COMPLETED_FOCUS',
             payload: { timerId: data.timerId, timerName: data.timerName },

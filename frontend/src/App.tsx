@@ -22,7 +22,7 @@ export default function App() {
   const sessionId = getSessionId()
   const [showApiKey, setShowApiKey] = useState(false)
 
-  const { requestPermission } = useTimerNotifications({ timers })
+  const { requestPermission, stopAlarm } = useTimerNotifications({ timers })
   const permissionRequested = useRef(false)
 
   useEffect(() => {
@@ -33,9 +33,14 @@ export default function App() {
     }
   }, [timers, requestPermission])
 
+  const handleDismiss = (timerId: string) => {
+    stopAlarm(timerId)
+    dismissAlert(timerId)
+  }
+
   return (
     <div className="app">
-      <AlertBanner alerts={alerts} onDismiss={dismissAlert} />
+      <AlertBanner alerts={alerts} onDismiss={handleDismiss} />
 
       <CommandsHelp />
 
