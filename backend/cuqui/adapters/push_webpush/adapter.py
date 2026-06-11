@@ -19,20 +19,32 @@ def _generate_vapid_keys() -> tuple[str, str]:
     private_key = asymmetric.ec.generate_private_key(asymmetric.ec.SECP256R1())
     public_key = private_key.public_key()
 
-    private_pem = private_key.private_bytes(
-        serialization.Encoding.PEM,
+    private_der = private_key.private_bytes(
+        serialization.Encoding.DER,
         serialization.PrivateFormat.PKCS8,
         serialization.NoEncryption(),
-    ).decode("utf-8")
+    )
+    private_b64 = base64.urlsafe_b64encode(private_der).rstrip(b"=").decode("utf-8")
 
     public_raw = public_key.public_bytes(
         serialization.Encoding.X962,
         serialization.PublicFormat.UncompressedPoint,
     )
-
     public_b64 = base64.urlsafe_b64encode(public_raw).rstrip(b"=").decode("utf-8")
 
-    return private_pem, public_b64
+    return private_b64, public_b64
+
+
+def _validate_keys(private_b64: str) -> bool:
+    try:
+        padding = 4 - len(private_b64) % 4
+        if padding != 4:
+            private_b64 += "=" * padding
+        der = base64.urlsafe_b64decode(private_b64)
+        serialization.load_der_private_key(der, password=None)
+        return True
+    except Exception:
+        return False
 
 
 def _load_or_generate_keys() -> tuple[str, str | None]:
@@ -46,16 +58,18 @@ def _load_or_generate_keys() -> tuple[str, str | None]:
     if keys_file.exists():
         try:
             data = json.loads(keys_file.read_text())
-            return data["private_key"], data["public_key"]
+            if _validate_keys(data["private_key"]):
+                return data["private_key"], data["public_key"]
+            log.warning("VAPID keys file has invalid format, regenerating")
         except (KeyError, json.JSONDecodeError):
             log.warning("Corrupt VAPID keys file, regenerating")
 
     log.info("Generating new VAPID keys, saving to %s", _VAPID_KEYS_FILE)
-    private_pem, public_b64 = _generate_vapid_keys()
+    private_b64, public_b64 = _generate_vapid_keys()
     keys_file.parent.mkdir(parents=True, exist_ok=True)
-    keys_file.write_text(json.dumps({"private_key": private_pem, "public_key": public_b64}))
+    keys_file.write_text(json.dumps({"private_key": private_b64, "public_key": public_b64}))
 
-    return private_pem, public_b64
+    return private_b64, public_b64
 
 
 class WebPushAdapter:
