@@ -100,17 +100,21 @@ class WebPushAdapter:
 
         for sub in subscriptions:
             try:
-                await asyncio.to_thread(
-                    webpush,
-                    subscription_info={
-                        "endpoint": sub["endpoint"],
-                        "keys": {"p256dh": sub["p256dh"], "auth": sub["auth"]},
-                    },
-                    data=payload,
-                    vapid_private_key=self._private_key,
-                    vapid_claims=self._vapid_claims,
+                await asyncio.wait_for(
+                    asyncio.to_thread(
+                        webpush,
+                        subscription_info={
+                            "endpoint": sub["endpoint"],
+                            "keys": {"p256dh": sub["p256dh"], "auth": sub["auth"]},
+                        },
+                        data=payload,
+                        vapid_private_key=self._private_key,
+                        vapid_claims=self._vapid_claims,
+                        timeout=5.0,
+                    ),
+                    timeout=10.0,
                 )
-            except WebPushException as exc:
+            except (WebPushException, asyncio.TimeoutError) as exc:
                 if exc.response and exc.response.status_code == 410:
                     log.info("Removing expired push subscription: %s", sub["endpoint"])
                     self.remove_subscription(session_id, sub["endpoint"])

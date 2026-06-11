@@ -688,13 +688,13 @@ async def _run_tick(app: FastAPI) -> None:
             if push_service:
                 for tid, timer in changed[sid].items():
                     if timer.status == TimerStatus.COMPLETED:
-                        await push_service.send(
+                        asyncio.create_task(push_service.send(
                             sid,
                             title="\u23F0 \u00a1Tiempo cumplido!",
                             body=f'"{timer.name}" — el temporizador termin\u00f3.',
                             tag=f"timer-{tid}",
                             data={"timerId": tid, "timerName": timer.name},
-                        )
+                        ))
 
 
 def create_app(serve_frontend: bool = False, frontend_dir: str | None = None) -> FastAPI:
