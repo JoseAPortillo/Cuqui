@@ -2,6 +2,39 @@ self.__WB_MANIFEST
 
 const RUNNING_TIMERS = new Map()
 
+function playAlarmBeeps() {
+  try {
+    const audioCtx = new AudioContext()
+    const now = audioCtx.currentTime
+    const beeps = 8
+    const beepLen = 0.25
+    const pause = 0.25
+    const cycle = beepLen + pause
+
+    const osc = audioCtx.createOscillator()
+    osc.type = 'sawtooth'
+
+    const gain = audioCtx.createGain()
+    gain.gain.setValueAtTime(0, now)
+
+    for (let i = 0; i < beeps; i++) {
+      const t = now + i * cycle
+      osc.frequency.setValueAtTime(i % 2 === 0 ? 880 : 660, t)
+      gain.gain.setValueAtTime(0.6, t)
+      gain.gain.setValueAtTime(0, t + beepLen)
+    }
+
+    osc.connect(gain)
+    gain.connect(audioCtx.destination)
+    osc.start(now)
+    osc.stop(now + beeps * cycle)
+
+    return new Promise((r) => setTimeout(r, beeps * cycle * 1000 + 200))
+  } catch {
+    return Promise.resolve()
+  }
+}
+
 self.addEventListener('push', (event) => {
   let data = { title: '\u23F0 \u00a1Tiempo cumplido!', body: '', tag: 'cuqui-push', data: {} }
   if (event.data) {
@@ -34,6 +67,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(data.title, options).catch(() => {}),
+      playAlarmBeeps(),
       broadcastAlarm,
     ]),
   )
@@ -97,6 +131,7 @@ function fireNotification(timer) {
       silent: false,
       data: { timerId: timer.id, timerName: timer.name },
     }).catch(() => {}),
+    playAlarmBeeps(),
     broadcastAlarm,
   ])
 }
