@@ -14,14 +14,24 @@ self.addEventListener('push', (event) => {
     body: data.body || '',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    vibrate: [200, 100, 200],
+    vibrate: [200, 100, 200, 100, 300],
     tag: data.tag || 'cuqui-push',
     renotify: true,
     requireInteraction: true,
+    silent: data.silent === true,
     data: data.data || {},
   }
 
-  event.waitUntil(self.registration.showNotification(data.title, options))
+  // Direct vibration fallback for environments where showNotification vibrate is ignored
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200, 100, 300])
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options).catch(() => {
+      /* notification may fail silently (e.g. quota exceeded) */
+    }),
+  )
 })
 
 self.addEventListener('message', (event) => {
@@ -61,16 +71,21 @@ function syncTimers(timers) {
 function fireNotification(timer) {
   RUNNING_TIMERS.delete(timer.id)
 
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200, 100, 300])
+  }
+
   self.registration.showNotification('\u23F0 \u00a1Tiempo cumplido!', {
     body: `"${timer.name}" — el temporizador termin\u00f3.`,
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    vibrate: [200, 100, 200],
+    vibrate: [200, 100, 200, 100, 300],
     tag: `timer-${timer.id}`,
     renotify: true,
     requireInteraction: true,
+    silent: false,
     data: { timerId: timer.id, timerName: timer.name },
-  })
+  }).catch(() => { /* ignore */ })
 }
 
 function clearTimer(id) {

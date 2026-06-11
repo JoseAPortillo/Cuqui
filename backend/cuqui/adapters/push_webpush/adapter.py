@@ -120,6 +120,7 @@ class WebPushAdapter:
             "title": title,
             "body": body,
             "tag": tag or "cuqui-timer",
+            "silent": False,
             "data": data or {},
         }).encode("utf-8")
 
@@ -148,9 +149,11 @@ class WebPushAdapter:
                     timeout=10.0,
                 )
                 log.debug("Push sent successfully to ...%s", sub["endpoint"][-16:])
-            except (WebPushException, asyncio.TimeoutError) as exc:
-                if isinstance(exc, WebPushException) and exc.response and exc.response.status_code == 410:
+            except WebPushException as exc:
+                if exc.response and exc.response.status_code == 410:
                     log.info("Removing expired push subscription ...%s", sub["endpoint"][-16:])
                     self.remove_subscription(session_id, sub["endpoint"])
                 else:
-                    log.warning("Push send failed for ...%s: %s", sub["endpoint"][-16:], exc)
+                    log.warning("Push send failed (WebPush) for ...%s: %s", sub["endpoint"][-16:], exc)
+            except Exception as exc:
+                log.warning("Push send unexpected error for ...%s: %s", sub["endpoint"][-16:], exc)
