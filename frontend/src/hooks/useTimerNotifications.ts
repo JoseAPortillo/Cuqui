@@ -20,33 +20,45 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return view as Uint8Array<ArrayBuffer>
 }
 
+const MAX_PUSH_RETRIES = 3
+const PUSH_RETRY_DELAY = 5000
+
 async function registerPush(sessionId: string): Promise<void> {
-  try {
-    const reg = await navigator.serviceWorker.ready
-    const existing = await reg.pushManager.getSubscription()
+  const reg = await navigator.serviceWorker.ready
+  const existing = await reg.pushManager.getSubscription()
 
-    const sub = existing
-      ? existing
-      : await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(
-            await fetchVapidKey(),
-          ),
-        })
+  const sub = existing
+    ? existing
+    : await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(
+          await fetchVapidKey(),
+        ),
+      })
 
-    const subJSON = sub.toJSON()
-    await fetch('/push/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: sessionId,
-        endpoint: subJSON.endpoint,
-        p256dh: subJSON.keys?.p256dh || '',
-        auth: subJSON.keys?.auth || '',
-      }),
-    })
-  } catch {
-    /* push subscription failed — app still works via SW timer sync */
+  const subJSON = sub.toJSON()
+  await fetch('/push/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: sessionId,
+      endpoint: subJSON.endpoint,
+      p256dh: subJSON.keys?.p256dh || '',
+      auth: subJSON.keys?.auth || '',
+    }),
+  })
+}
+
+async function registerPushWithRetry(sessionId: string): Promise<void> {
+  for (let i = 0; i < MAX_PUSH_RETRIES; i++) {
+    try {
+      await registerPush(sessionId)
+      return
+    } catch {
+      if (i < MAX_PUSH_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, PUSH_RETRY_DELAY))
+      }
+    }
   }
 }
 
@@ -74,7 +86,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
 
   timersRef.current = timers
 
-  function playAlarm(timerId: string) {
+  const playAlarm = useCallback((timerId: string) => {
     if (playingAlarms.current.has(timerId)) return
     playingAlarms.current.add(timerId)
 
@@ -89,7 +101,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     playChime()
     const interval = setInterval(playChime, ALARM_LOOP_MS)
     alarmIntervals.current.set(timerId, interval)
-  }
+  }, [])
 
   const stopAlarm = useCallback((timerId: string) => {
     const interval = alarmIntervals.current.get(timerId)
@@ -130,7 +142,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
 
     if (result === 'granted' && !pushRegistered.current) {
       pushRegistered.current = true
-      registerPush(getSessionId())
+      registerPushWithRetry(getSessionId())
     }
 
     return result === 'granted'
@@ -164,7 +176,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
       syncTimers()
       if (!pushRegistered.current) {
         pushRegistered.current = true
-        registerPush(getSessionId())
+        registerPushWithRetry(getSessionId())
       }
     }
 
@@ -210,5 +222,50 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     }
   }, [timers, sendToSW])
 
-  return { requestPermission, stopAllAlarms, stopAlarm }
+  const initialCheckDone = useRef(false)
+  const timersOnHide = useRef<Record<string, Timer>>({})
+
+  useEffect(() => {
+    if (initialCheckDone.current) return
+    if (Object.keys(timers).length === 0) return
+
+    initialCheckDone.current = true
+
+    const now = Date.now()
+    const RECENT_MS = 5 * 60 * 1000
+
+    for (const timer of Object.values(timers)) {
+      if (
+        timer.status === 'completed'
+        && timer.completed_at
+        && now - new Date(timer.completed_at).getTime() < RECENT_MS
+        && !playingAlarms.current.has(timer.id)
+      ) {
+        playAlarm(timer.id)
+      }
+    }
+  }, [timers])
+
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        timersOnHide.current = { ...timersRef.current }
+      } else if (document.visibilityState === 'visible') {
+        const prev = timersOnHide.current
+        for (const [id, timer] of Object.entries(timersRef.current)) {
+          const prevTimer = prev[id]
+          if (timer.status === 'completed' && (!prevTimer || prevTimer.status !== 'completed')) {
+            if (!playingAlarms.current.has(id)) {
+              playAlarm(id)
+            }
+          }
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
+
+  return { requestPermission, stopAllAlarms, stopAlarm, playAlarm }
 }

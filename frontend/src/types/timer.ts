@@ -7,6 +7,7 @@ export interface Timer {
   remaining: number
   status: TimerStatus
   created_at: string
+  completed_at?: string
 }
 
 export interface TimerState {

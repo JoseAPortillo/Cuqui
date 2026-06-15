@@ -44,6 +44,7 @@ export function useCuquiApi(): CuquiApiState {
   const [error, setApiError] = useState<FriendlyError | null>(null)
   const [loadingTimers, setLoadingTimers] = useState<Record<string, boolean>>({})
   const prevTimersRef = useRef<Record<string, Timer>>({})
+  const hasLoadedRef = useRef(false)
 
   const connectWs = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
@@ -111,8 +112,14 @@ export function useCuquiApi(): CuquiApiState {
 
   useEffect(() => {
     const prev = prevTimersRef.current
-    // Update ref NOW so subsequent renders compare against this state
     prevTimersRef.current = timers
+
+    if (!hasLoadedRef.current) {
+      if (Object.keys(timers).length > 0) {
+        hasLoadedRef.current = true
+      }
+      return
+    }
 
     const newAlerts: TimerAlert[] = []
 

@@ -35,6 +35,7 @@ def _timer_to_row(timer: Timer) -> dict[str, Any]:
         "remaining": timer.remaining,
         "status": timer.status.value,
         "created_at": timer.created_at.isoformat(),
+        "completed_at": timer.completed_at.isoformat() if timer.completed_at else None,
     }
 
 
@@ -46,6 +47,7 @@ def _row_to_timer(data: dict[str, Any]) -> Timer:
         remaining=data["remaining"],
         status=TimerStatus(data["status"]),
         created_at=datetime.fromisoformat(data["created_at"]),
+        completed_at=datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None,
     )
 
 
@@ -78,6 +80,15 @@ class SqliteTimerStore:
             """CREATE TABLE IF NOT EXISTS api_keys (
                 session_id TEXT PRIMARY KEY,
                 api_key    TEXT NOT NULL
+            )"""
+        )
+        self._conn.execute(
+            """CREATE TABLE IF NOT EXISTS push_subscriptions (
+                session_id TEXT NOT NULL,
+                endpoint   TEXT NOT NULL,
+                auth       TEXT NOT NULL,
+                p256dh     TEXT NOT NULL,
+                PRIMARY KEY (session_id, endpoint)
             )"""
         )
         self._conn.commit()
@@ -120,6 +131,30 @@ class SqliteTimerStore:
         )
         row = cursor.fetchone()
         return row[0] if row else None
+
+    def save_push_subscription(self, session_id: str, endpoint: str, auth: str, p256dh: str) -> None:
+        self._conn.execute(
+            "INSERT OR REPLACE INTO push_subscriptions (session_id, endpoint, auth, p256dh) VALUES (?, ?, ?, ?)",
+            (session_id, endpoint, auth, p256dh),
+        )
+        self._conn.commit()
+
+    def remove_push_subscription(self, session_id: str, endpoint: str) -> None:
+        self._conn.execute(
+            "DELETE FROM push_subscriptions WHERE session_id = ? AND endpoint = ?",
+            (session_id, endpoint),
+        )
+        self._conn.commit()
+
+    def load_push_subscriptions(self, session_id: str) -> list[dict[str, str]]:
+        cursor = self._conn.execute(
+            "SELECT endpoint, auth, p256dh FROM push_subscriptions WHERE session_id = ?",
+            (session_id,),
+        )
+        return [
+            {"endpoint": row[0], "auth": row[1], "p256dh": row[2]}
+            for row in cursor
+        ]
 
     def list_sessions(self) -> list[str]:
         cursor = self._conn.execute("SELECT DISTINCT session_id FROM timers")

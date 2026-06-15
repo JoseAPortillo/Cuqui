@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useCuquiApi } from './hooks/useCuquiApi'
 import { useTimerNotifications } from './hooks/useTimerNotifications'
 import { TimerDashboard } from './components/TimerDashboard'
@@ -22,16 +22,17 @@ export default function App() {
   const sessionId = getSessionId()
   const [showApiKey, setShowApiKey] = useState(false)
 
-  const { requestPermission, stopAlarm } = useTimerNotifications({ timers })
-  const permissionRequested = useRef(false)
+  const { requestPermission, stopAlarm, playAlarm } = useTimerNotifications({ timers })
 
   useEffect(() => {
-    const hasTimers = Object.keys(timers).length > 0
-    if (hasTimers && !permissionRequested.current) {
-      permissionRequested.current = true
-      requestPermission()
+    requestPermission()
+  }, [requestPermission])
+
+  useEffect(() => {
+    for (const a of alerts) {
+      playAlarm(a.timerId)
     }
-  }, [timers, requestPermission])
+  }, [alerts, playAlarm])
 
   const handleDismiss = (timerId: string) => {
     stopAlarm(timerId)

@@ -73,13 +73,15 @@ def _load_or_generate_keys() -> tuple[str, str | None]:
 
 
 class WebPushAdapter:
-    def __init__(self) -> None:
+    def __init__(self, store: object | None = None) -> None:
         self._private_key, self._public_key = _load_or_generate_keys()
         self._vapid_claims = {"sub": os.getenv("VAPID_CLAIMS_EMAIL", "mailto:cuqui@app.local")}
         self._subscriptions: dict[str, dict[str, dict]] = {}
+        self._store = store
         log.info(
-            "WebPushAdapter initialized (public key hash: %s...)",
+            "WebPushAdapter initialized (public key hash: %s..., store: %s)",
             self._public_key[:16] if self._public_key else "NONE",
+            "yes" if store else "no",
         )
 
     def vapid_public_key(self) -> str | None:
@@ -93,15 +95,29 @@ class WebPushAdapter:
             subscription["endpoint"][-16:],
             len(self._subscriptions[session_id]),
         )
+        if self._store is not None:
+            self._store.save_push_subscription(
+                session_id,
+                subscription["endpoint"],
+                subscription.get("auth", ""),
+                subscription.get("p256dh", ""),
+            )
 
     def remove_subscription(self, session_id: str, endpoint: str) -> None:
         subs = self._subscriptions.get(session_id, {})
         if endpoint in subs:
             del subs[endpoint]
             log.info("Push subscription removed for session=%s", session_id)
+        if self._store is not None:
+            self._store.remove_push_subscription(session_id, endpoint)
 
     def get_subscriptions(self, session_id: str) -> list[dict]:
-        return list(self._subscriptions.get(session_id, {}).values())
+        subs = list(self._subscriptions.get(session_id, {}).values())
+        if not subs and self._store is not None:
+            subs = self._store.load_push_subscriptions(session_id)
+            if subs:
+                self._subscriptions[session_id] = {s["endpoint"]: s for s in subs}
+        return subs
 
     async def send(
         self,

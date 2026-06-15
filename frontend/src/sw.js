@@ -2,9 +2,32 @@ self.__WB_MANIFEST
 
 const RUNNING_TIMERS = new Map()
 
-function playAlarmBeeps() {
+async function ensureAudioCtx() {
+  const ctx = new AudioContext()
+  if (ctx.state === 'suspended') {
+    await ctx.resume()
+  }
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('resume timeout')), 3000),
+  )
+  await Promise.race([
+    new Promise((resolve) => {
+      if (ctx.state === 'running') return resolve()
+      ctx.onstatechange = () => {
+        if (ctx.state === 'running') {
+          ctx.onstatechange = null
+          resolve()
+        }
+      }
+    }),
+    timeout,
+  ])
+  return ctx
+}
+
+async function playAlarmBeeps() {
   try {
-    const audioCtx = new AudioContext()
+    const audioCtx = await ensureAudioCtx()
     const now = audioCtx.currentTime
     const beeps = 8
     const beepLen = 0.25
@@ -20,7 +43,7 @@ function playAlarmBeeps() {
     for (let i = 0; i < beeps; i++) {
       const t = now + i * cycle
       osc.frequency.setValueAtTime(i % 2 === 0 ? 880 : 660, t)
-      gain.gain.setValueAtTime(0.6, t)
+      gain.gain.setValueAtTime(0.5, t)
       gain.gain.setValueAtTime(0, t + beepLen)
     }
 
@@ -34,6 +57,26 @@ function playAlarmBeeps() {
     return Promise.resolve()
   }
 }
+
+self.addEventListener('install', () => {
+  self.skipWaiting()
+})
+
+async function warmAudioPipeline() {
+  try {
+    const ctx = await ensureAudioCtx()
+    ctx.close()
+  } catch {
+    /* warm-up failed — alarm will try fresh AudioContext per push */
+  }
+}
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(Promise.all([
+    self.clients.claim(),
+    warmAudioPipeline(),
+  ]))
+})
 
 self.addEventListener('push', (event) => {
   let data = { title: '\u23F0 \u00a1Tiempo cumplido!', body: '', tag: 'cuqui-push', data: {} }

@@ -95,6 +95,7 @@ def _timer_to_dict(timer: Timer) -> dict[str, Any]:
         "remaining": timer.remaining,
         "status": timer.status.value,
         "created_at": timer.created_at.isoformat(),
+        "completed_at": timer.completed_at.isoformat() if timer.completed_at else None,
     }
 
 
@@ -661,7 +662,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         fallback=openai_asr,
     )
 
-    app.state.push_service = WebPushAdapter()
+    app.state.push_service = WebPushAdapter(store=store)
 
     tick_task = asyncio.create_task(_run_tick(app))
     yield
@@ -694,7 +695,7 @@ async def _run_tick(app: FastAPI) -> None:
                             sid,
                             title="\u23F0 \u00a1Tiempo cumplido!",
                             body=f'"{timer.name}" — el temporizador termin\u00f3.',
-                            tag=f"timer-{tid}-{seq}",
+                            tag=f"timer-{tid}",
                             data={"timerId": tid, "timerName": timer.name},
                         ))
 
