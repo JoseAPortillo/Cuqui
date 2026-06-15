@@ -27,6 +27,7 @@ __all__ = [
     "CommandRequest",
     "DomainErrorResponse",
     "ParseErrorResponse",
+    "PushSubscriptionRequest",
     "TimerActionRequest",
     "TimerListResponse",
     "TimerResponse",
@@ -84,6 +85,15 @@ class ApiKeyResponse(BaseModel):
 
     has_key: bool
     masked_key: str | None = None
+
+
+class PushSubscriptionRequest(BaseModel):
+    """Body contract for ``POST /push/subscribe``."""
+
+    session_id: str
+    endpoint: str
+    p256dh: str
+    auth: str
 
 
 TimerListResponse = list[TimerResponse]

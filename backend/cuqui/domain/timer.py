@@ -56,6 +56,7 @@ class Timer:
     remaining: int
     status: TimerStatus
     created_at: datetime
+    completed_at: datetime | None = None
 
     # ── state transitions ──────────────────────────────────────────────────
 
@@ -117,6 +118,7 @@ class Timer:
             remaining=0,
             status=TimerStatus.COMPLETED,
             created_at=self.created_at,
+            completed_at=datetime.now(timezone.utc),
         )
 
     def cancel(self) -> Timer:

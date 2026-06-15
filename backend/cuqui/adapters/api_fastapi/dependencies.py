@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from starlette.requests import HTTPConnection
 
+from cuqui.adapters.push_webpush import WebPushAdapter
 from cuqui.adapters.storage_sqlite import SqliteTimerStore
 from cuqui.application.manage_timers import TimerManager
 from cuqui.application.sync_state import SyncService
@@ -32,6 +33,7 @@ from cuqui.ports.speech_to_text import SpeechToText
 
 __all__ = [
     "get_intent_parser",
+    "get_push_service",
     "get_speech_to_text",
     "get_sync_service",
     "get_timer_manager",
@@ -62,3 +64,8 @@ def get_speech_to_text(conn: HTTPConnection) -> SpeechToText:
 def get_timer_store(conn: HTTPConnection) -> SqliteTimerStore:
     """Return the ``SqliteTimerStore`` singleton from app state."""
     return conn.app.state.timer_store
+
+
+def get_push_service(conn: HTTPConnection) -> WebPushAdapter | None:
+    """Return the ``WebPushAdapter`` singleton from app state (may be None)."""
+    return getattr(conn.app.state, "push_service", None)

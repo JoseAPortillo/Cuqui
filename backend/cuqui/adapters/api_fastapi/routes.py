@@ -25,6 +25,7 @@ Error handling
 from __future__ import annotations
 
 import asyncio
+import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -44,6 +45,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from cuqui.adapters.api_fastapi.dependencies import (
     get_intent_parser,
+    get_push_service,
     get_speech_to_text,
     get_sync_service,
     get_timer_manager,
@@ -55,15 +57,17 @@ from cuqui.adapters.api_fastapi.schemas import (
     CommandRequest,
     DomainErrorResponse,
     ParseErrorResponse,
+    PushSubscriptionRequest,
     TimerActionRequest,
     TimerResponse,
 )
+from cuqui.adapters.push_webpush import WebPushAdapter
 from cuqui.adapters.storage_sqlite import SqliteTimerStore
 from cuqui.application.manage_timers import TimerManager
 from cuqui.application.process_command import process_command
 from cuqui.application.sync_state import SyncService
 from cuqui.domain.parser import ParseError
-from cuqui.domain.timer import Timer
+from cuqui.domain.timer import Timer, TimerStatus
 from cuqui.ports.intent_parser import IntentParser
 from cuqui.ports.speech_to_text import SpeechToText
 
@@ -91,6 +95,7 @@ def _timer_to_dict(timer: Timer) -> dict[str, Any]:
         "remaining": timer.remaining,
         "status": timer.status.value,
         "created_at": timer.created_at.isoformat(),
+        "completed_at": timer.completed_at.isoformat() if timer.completed_at else None,
     }
 
 
@@ -549,6 +554,46 @@ async def get_api_key(
     return ApiKeyResponse(has_key=True, masked_key=masked)
 
 
+# ── Push notification endpoints ────────────────────────────────────────────────
+
+
+@router.get("/push/vapid-public-key")
+async def get_vapid_public_key(
+    push_service: WebPushAdapter | None = Depends(get_push_service),
+) -> dict[str, str | None]:
+    """Return the VAPID public key for push subscription (or null if push is disabled)."""
+    key = push_service.vapid_public_key() if push_service else None
+    return {"public_key": key}
+
+
+@router.post("/push/subscribe")
+async def subscribe_push(
+    body: PushSubscriptionRequest,
+    push_service: WebPushAdapter | None = Depends(get_push_service),
+) -> dict[str, str]:
+    """Save a push subscription for *session_id*."""
+    if push_service is None:
+        return {"status": "push_disabled"}
+    push_service.save_subscription(
+        body.session_id,
+        {"endpoint": body.endpoint, "p256dh": body.p256dh, "auth": body.auth},
+    )
+    return {"status": "ok"}
+
+
+@router.delete("/push/subscribe")
+async def unsubscribe_push(
+    session_id: str = Query(..., description="Session identifier"),
+    endpoint: str = Query(..., description="Push endpoint to remove"),
+    push_service: WebPushAdapter | None = Depends(get_push_service),
+) -> dict[str, str]:
+    """Remove a push subscription for *session_id*."""
+    if push_service is None:
+        return {"status": "push_disabled"}
+    push_service.remove_subscription(session_id, endpoint)
+    return {"status": "ok"}
+
+
 # ── WS /ws/session/{session_id} ───────────────────────────────────────────────
 
 
@@ -593,6 +638,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from cuqui.adapters.asr_faster_whisper import FasterWhisperAdapter
     from cuqui.adapters.asr_openai import OpenAIWhisperAdapter
     from cuqui.adapters.parser_rules.adapter import TimerParserAdapter
+    from cuqui.adapters.push_webpush import WebPushAdapter
     from cuqui.adapters.storage_sqlite import SqliteTimerStore
 
     # Protect all logs against accidental credential leaks
@@ -616,6 +662,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         fallback=openai_asr,
     )
 
+    app.state.push_service = WebPushAdapter(store=store)
+
     tick_task = asyncio.create_task(_run_tick(app))
     yield
     tick_task.cancel()
@@ -631,6 +679,7 @@ async def _run_tick(app: FastAPI) -> None:
         await asyncio.sleep(1)
         manager: TimerManager = app.state.timer_manager
         sync: SyncService = app.state.sync_service
+        push_service: WebPushAdapter | None = getattr(app.state, "push_service", None)
         changed = manager.tick_all()
         for sid in changed:
             full = {
@@ -638,6 +687,17 @@ async def _run_tick(app: FastAPI) -> None:
                 for tid, t in manager.get_all_timers(sid).items()
             }
             await sync.broadcast(sid, {"timers": full})
+            if push_service:
+                for tid, timer in changed[sid].items():
+                    if timer.status == TimerStatus.COMPLETED:
+                        seq = int(time.time() * 1000)
+                        asyncio.create_task(push_service.send(
+                            sid,
+                            title="\u23F0 \u00a1Tiempo cumplido!",
+                            body=f'"{timer.name}" — el temporizador termin\u00f3.',
+                            tag=f"timer-{tid}",
+                            data={"timerId": tid, "timerName": timer.name},
+                        ))
 
 
 def create_app(serve_frontend: bool = False, frontend_dir: str | None = None) -> FastAPI:
