@@ -1,52 +1,52 @@
-# Cuqui — Asistente de cocina inteligente por voz
+# Cuqui — Voice-Controlled Smart Cooking Assistant
 
-## Descripción general
+## Overview
 
-Cuqui es un asistente de cocina controlado por voz que permite gestionar múltiples temporizadores con nombre mediante comandos en lenguaje natural. Está diseñado como proyecto de TFM para demostrar integración de IA, parseo de lenguaje natural, sincronización en tiempo real, y despliegue reproducible con Docker.
+Cuqui is a voice-controlled cooking assistant that manages multiple named timers through natural language commands. It is designed as a TFM (Master's Thesis) project to demonstrate AI integration, natural language parsing, real-time synchronization, and reproducible deployment with Docker.
 
-El sistema permite crear, pausar, reanudar, extender, reducir, renombrar y consultar temporizadores usando comandos de voz o texto. La sincronización de estado se realiza mediante WebSockets, y las notificaciones en segundo plano funcionan vía Push API + Service Worker incluso con la pantalla apagada.
+The system supports creating, pausing, resuming, extending, reducing, renaming, and checking timers using voice or text commands. State synchronization happens via WebSockets, and background notifications work through the Push API + Service Worker even when the screen is off.
 
-## Stack tecnológico
+## Tech Stack
 
-| Capa | Tecnología |
+| Layer | Technology |
 | :--- | :--- |
 | **Backend** | Python 3.12+, FastAPI, Uvicorn, WebSockets |
 | **Frontend** | React 19, TypeScript, Vite 8 |
 | **PWA** | Service Worker (injectManifest), VitePWA, Push API + VAPID |
-| **Base de datos** | SQLite (persistencia entre sesiones) |
-| **ASR local** | faster-whisper (tiny/base/small) |
-| **ASR cloud** | OpenAI Whisper API (fallback opcional) |
-| **NLU** | Parser basado en reglas deterministas |
-| **LLM fallback** | OpenAI API (solo para comandos de baja confianza) |
-| **Notificaciones push** | pywebpush + Web Push Protocol |
-| **Contenedor** | Docker Compose (multi-stage build) |
+| **Database** | SQLite (session persistence) |
+| **Local ASR** | faster-whisper (tiny/base/small) |
+| **Cloud ASR** | OpenAI Whisper API (optional fallback) |
+| **NLU** | Deterministic rule-based parser |
+| **LLM fallback** | OpenAI API (low-confidence commands only) |
+| **Push notifications** | pywebpush + Web Push Protocol |
+| **Container** | Docker Compose (multi-stage build) |
 | **Testing** | pytest, pytest-asyncio, httpx, pytest-cov |
 | **Linting** | Ruff |
 
-## Instalación y ejecución
+## Installation & Setup
 
-### Requisitos
+### Requirements
 
-- Docker y Docker Compose (recomendado)
-- O Python 3.12+ y Node.js 20+ (desarrollo local)
+- Docker and Docker Compose (recommended)
+- Or Python 3.12+ and Node.js 20+ (local development)
 
-### Con Docker (recomendado)
+### With Docker (recommended)
 
 ```bash
-# Construir y levantar
+# Build and start
 docker compose up --build
 
-# La aplicación estará disponible en http://localhost:8000
+# The app will be available at http://localhost:8000
 ```
 
-### Sin Docker (desarrollo)
+### Without Docker (development)
 
 **Backend:**
 
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate   # Windows
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e ".[dev,asr,llm]"
 uvicorn cuqui.__main__:app --reload --port 8000
 ```
@@ -59,125 +59,126 @@ npm install
 npm run dev
 ```
 
-### Variables de entorno
+### Environment Variables
 
-| Variable | Descripción | Valor por defecto |
+| Variable | Description | Default |
 | :--- | :--- | :--- |
-| `CUQUI_SERVE_FRONTEND` | Servir el frontend compilado desde el backend | `0` |
-| `CUQUI_PORT` | Puerto del servidor | `8000` |
-| `CUQUI_RELOAD` | Hot reload en desarrollo | `0` |
-| `OPENAI_API_KEY` | API key para ASR/LLM cloud (opcional) | — |
-| `VAPID_PUBLIC_KEY` | Clave pública VAPID para push | Se genera automáticamente |
-| `VAPID_PRIVATE_KEY` | Clave privada VAPID para push | Se genera automáticamente |
-| `VAPID_CLAIM_EMAIL` | Email para VAPID claim | `cuqui@localhost` |
+| `CUQUI_SERVE_FRONTEND` | Serve compiled frontend from the backend | `0` |
+| `CUQUI_PORT` | Server port | `8000` |
+| `CUQUI_RELOAD` | Hot reload in development | `0` |
+| `OPENAI_API_KEY` | API key for cloud ASR/LLM (optional) | — |
+| `VAPID_PUBLIC_KEY` | VAPID public key for push notifications | Auto-generated |
+| `VAPID_PRIVATE_KEY` | VAPID private key for push notifications | Auto-generated |
+| `VAPID_CLAIM_EMAIL` | Email for VAPID claim | `cuqui@localhost` |
 
-### Notas importantes
+### Important Notes
 
-- El audio del navegador requiere un contexto seguro: usa `localhost` en desarrollo o HTTPS en producción.
-- Las notificaciones push requieren registro de Service Worker (se hace automáticamente al cargar la app).
-- La API key de OpenAI es **opcional**; sin ella funciona solo con ASR local (faster-whisper) y parser de reglas.
+- Browser audio capture requires a secure context: use `localhost` for development or HTTPS in production.
+- Push notifications require Service Worker registration (happens automatically on app load).
+- The OpenAI API key is **optional**; without it the app works with local ASR (faster-whisper) and the rule-based parser only.
 
-## Estructura del proyecto
+## Project Structure
 
 ```
 cuqui/
 ├── backend/
 │   ├── cuqui/
-│   │   ├── __main__.py              # Punto de entrada (uvicorn)
+│   │   ├── __main__.py              # Entry point (uvicorn)
 │   │   ├── domain/
-│   │   │   ├── timer.py             # Modelo de dominio: Timer, TimerState
-│   │   │   ├── commands.py          # Esquemas de comandos (SetTimer, ExtendTimer, etc.)
-│   │   │   └── parser.py            # Parser de comandos en lenguaje natural
+│   │   │   ├── timer.py             # Domain model: Timer, TimerState
+│   │   │   ├── commands.py          # Command schemas (SetTimer, ExtendTimer, etc.)
+│   │   │   └── parser.py            # Natural language command parser
 │   │   ├── application/
-│   │   │   ├── manage_timers.py     # Casos de uso: CRUD de temporizadores
-│   │   │   ├── process_command.py   # Procesamiento de comandos (texto/audio)
-│   │   │   └── sync_state.py        # Sincronización de estado vía WebSocket
+│   │   │   ├── manage_timers.py     # Use cases: timer CRUD
+│   │   │   ├── process_command.py   # Command processing (text/audio)
+│   │   │   └── sync_state.py        # WebSocket state synchronization
 │   │   ├── ports/
-│   │   │   ├── intent_parser.py     # Puerto: parseo de intenciones
-│   │   │   ├── speech_to_text.py    # Puerto: transcripción de audio
-│   │   │   ├── push_notification.py # Puerto: notificaciones push
-│   │   │   └── storage.py           # Puerto: persistencia
+│   │   │   ├── intent_parser.py     # Port: intent parsing
+│   │   │   ├── speech_to_text.py    # Port: audio transcription
+│   │   │   ├── push_notification.py # Port: push notifications
+│   │   │   └── storage.py           # Port: persistence
 │   │   └── adapters/
-│   │       ├── api_fastapi/         # Adaptador HTTP/WS (FastAPI)
-│   │       ├── parser_rules/        # Adaptador: parser basado en reglas
-│   │       ├── asr_faster_whisper/  # Adaptador: ASR local
-│   │       ├── asr_openai/          # Adaptador: ASR cloud (OpenAI)
-│   │       ├── push_webpush/        # Adaptador: notificaciones push
-│   │       ├── storage_memory/      # Adaptador: almacenamiento en memoria
-│   │       └── storage_sqlite/      # Adaptador: almacenamiento SQLite
+│   │       ├── api_fastapi/         # HTTP/WS adapter (FastAPI)
+│   │       ├── parser_rules/        # Adapter: rule-based parser
+│   │       ├── asr_faster_whisper/  # Adapter: local ASR
+│   │       ├── asr_openai/          # Adapter: cloud ASR (OpenAI)
+│   │       ├── push_webpush/        # Adapter: push notifications
+│   │       ├── storage_memory/      # Adapter: in-memory storage
+│   │       └── storage_sqlite/      # Adapter: SQLite storage
 │   ├── tests/
-│   │   ├── unit/                    # Tests unitarios
-│   │   └── integration/             # Tests de integración (API, WS)
+│   │   ├── unit/                    # Unit tests
+│   │   └── integration/             # Integration tests (API, WS)
 │   ├── Dockerfile                   # Multi-stage build (frontend + backend)
-│   └── pyproject.toml               # Configuración Python
+│   └── pyproject.toml               # Python config
 ├── frontend/
 │   ├── src/
-│   │   ├── main.tsx                 # Punto de entrada React
-│   │   ├── App.tsx                  # Componente principal
-│   │   ├── sw.js                    # Service Worker (push, audio, caché)
+│   │   ├── main.tsx                 # React entry point
+│   │   ├── App.tsx                  # Main component
+│   │   ├── sw.js                    # Service Worker (push, audio, cache)
 │   │   ├── components/
-│   │   │   ├── TimerDashboard.tsx   # Panel de temporizadores activos
-│   │   │   ├── TimerCard.tsx        # Tarjeta individual de temporizador
-│   │   │   ├── AlertBanner.tsx      # Banner de alarmas activas
-│   │   │   ├── VoiceButton.tsx      # Botón push-to-talk
-│   │   │   ├── CommandInput.tsx     # Entrada de texto para comandos
-│   │   │   ├── CommandsHelp.tsx     # Ayuda de comandos disponibles
-│   │   │   ├── DebugPanel.tsx       # Panel de depuración (TFM)
-│   │   │   └── ApiKeySettings.tsx   # Configuración de API key
+│   │   │   ├── TimerDashboard.tsx   # Active timers panel
+│   │   │   ├── TimerCard.tsx        # Individual timer card
+│   │   │   ├── AlertBanner.tsx      # Active alarm banners
+│   │   │   ├── VoiceButton.tsx      # Push-to-talk button
+│   │   │   ├── CommandInput.tsx     # Text command input
+│   │   │   ├── CommandsHelp.tsx     # Available commands help
+│   │   │   ├── DebugPanel.tsx       # Debug panel (TFM demo)
+│   │   │   └── ApiKeySettings.tsx   # API key configuration
 │   │   ├── hooks/
-│   │   │   ├── useCuquiApi.ts       # Hook de API (REST + WebSocket)
-│   │   │   └── useTimerNotifications.ts # Hook de notificaciones
+│   │   │   ├── useCuquiApi.ts       # API hook (REST + WebSocket)
+│   │   │   └── useTimerNotifications.ts # Notification hook
 │   │   ├── types/
-│   │   │   └── timer.ts             # Tipos TypeScript
+│   │   │   └── timer.ts             # TypeScript types
 │   │   └── utils/
-│   │       ├── chime.ts             # Reproducción de sonido de alarma
-│   │       └── errorMessages.ts     # Mensajes de error amigables
+│   │       ├── chime.ts             # Alarm sound playback
+│   │       └── errorMessages.ts     # User-friendly error messages
 │   ├── public/
-│   │   └── icons/                   # Iconos PWA
+│   │   └── icons/                   # PWA icons
 │   ├── index.html
-│   ├── vite.config.ts               # Configuración Vite + PWA + SSL
+│   ├── vite.config.ts               # Vite + PWA + SSL config
 │   └── package.json
-├── docker-compose.yml               # Orquestación Docker
-└── data/                            # Datos persistentes (SQLite, cachés)
+├── docker-compose.yml               # Docker orchestration
+└── data/                            # Persistent data (SQLite, caches)
 ```
 
-## Funcionalidades principales
+## Features
 
-### Temporizadores por voz
+### Voice-Controlled Timers
 
-- Crear temporizadores con nombre: _"poner 10 minutos a la pasta"_
-- Añadir tiempo: _"Añadir 5 minutos al pollo"_
-- Reducir tiempo: _"Quitar 2 minutos al arroz"_
-- Pausar/reanudar: _"Pausar el pescado"_, _"Reanudar todos los temporizadores"_
-- Cancelar: _"Cancelar las patatas"_
-- Renombrar: _"Renombrar pasta a spaghetti"_
+- Create named timers: _"set 10 minutes for pasta"_
+- Add time: _"add 5 minutes to the chicken"_
+- Reduce time: _"reduce rice by 2 minutes"_
+- Pause/resume: _"pause the fish"_, _"resume all timers"_
+- Cancel: _"cancel the potatoes"_
+- Rename: _"rename pasta to spaghetti"_
 
-### Entrada de comandos
+### Command Input
 
-- **Voz**: Botón push-to-talk con grabación de micrófono
+- **Voice**: Push-to-talk button with microphone recording
+- **Text**: Text input field for typed commands
 
-### Notificaciones en segundo plano
+### Background Notifications
 
-- Notificaciones push con sonido de alarma incluso con la pantalla apagada
-- Alarma audible desde el Service Worker mediante Web Audio API (AudioContext)
-- Sincronización visual al volver a la aplicación
+- Push notifications with alarm sound even when the screen is off
+- Audible alarm from the Service Worker via Web Audio API (AudioContext)
+- Visual sync when returning to the app
 
-### Panel de control
+### Control Panel
 
-- Dashboard con tarjetas de temporizadores activos
-- Indicador de sincronización WebSocket en tiempo real
-- Sistema de mensajes de error amigables con contexto
+- Dashboard with active timer cards
+- Real-time WebSocket connection indicator
+- Context-aware user-friendly error messages
 
-### Panel de costos (TFM)
+### Cost Panel (TFM Demo)
 
-- Visualización del modo de procesamiento (local vs cloud)
-- Control de API key de OpenAI (opcional)
-- Preparado para registrar uso de APIs de pago
+- Processing mode display (local vs cloud)
+- OpenAI API key control (optional)
+- Ready for paid API usage tracking
 
-## Usuario y contraseña de prueba
+## Test Credentials
 
-El proyecto **no implementa autenticación**. No requiere usuario ni contraseña. Cada sesión se identifica con un UUID generado automáticamente y almacenado en `localStorage`. No hay datos sensibles ni multiinquilino.
+The project **does not implement authentication**. No username or password required. Each session is identified by an auto-generated UUID stored in `localStorage`. No sensitive data or multi-tenancy.
 
-## Licencia
+## License
 
-Proyecto académico — TFM.
+Academic project — TFM.
