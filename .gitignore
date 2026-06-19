@@ -8,6 +8,9 @@ build/
 .venv/
 venv/
 env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 
 # IDE
 .vscode/
@@ -34,11 +37,19 @@ frontend/.svelte-kit/
 frontend/.next/
 frontend/build/
 
-# Environment
+# Environment & secrets
 .env
 .env.local
 *.env
 *.db
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.secret
+vapid_private*
+vapid_public*
 
 # Coverage
 coverage/
@@ -46,5 +57,16 @@ coverage/
 htmlcov/
 .xml
 
-# Logs
+# Logs & runtime output
 *.log
+*.out
+
+# Runtime data (Docker volume: SQLite, HF cache, etc.)
+data/
+
+# AI / agent tooling — not needed to run the program
+.atl/
+.agent/
+
+# Unused default Vite assets
+frontend/src/assets/
