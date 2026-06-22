@@ -6,6 +6,11 @@ Cuqui is a voice-controlled cooking assistant that manages multiple named timers
 
 The system supports creating, pausing, resuming, extending, reducing, renaming, and checking timers using voice or text commands. State synchronization happens via WebSockets, and background notifications work through the Push API + Service Worker even when the screen is off.
 
+## TFM's Documents
+- The slice document for the TFM project is available at the following link: [https://docs.google.com/presentation/d/1mqL9VpTbUUpLkwpgoKqmWxSIKEmeiaz6zP-Z9wokacE/edit?usp=drive_link]
+- The github repository is available: [https://github.com/JoseAPortillo/Cuqui.git]
+
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -145,10 +150,21 @@ cuqui/
 
 ### Voice-Controlled Timers
 
+#### Spanish command voices
+  
+- Create named timers: _"Poner 10 minutos a pasta"_
+- Add time: _"Añadir 5 minutos a pollo"_
+- Reduce time: _"reducir a arroz 2 minutos"_
+- Pause/resume: _"pausar el pescado"_
+- Cancel: _"cancelar las patatas"_
+- Rename: _"renombrar pasta a spaghetti"_
+
+#### English command voices
+
 - Create named timers: _"set 10 minutes for pasta"_
 - Add time: _"add 5 minutes to the chicken"_
 - Reduce time: _"reduce rice by 2 minutes"_
-- Pause/resume: _"pause the fish"_, _"resume all timers"_
+- Pause/resume: _"pause the fish"_
 - Cancel: _"cancel the potatoes"_
 - Rename: _"rename pasta to spaghetti"_
 
@@ -179,6 +195,4 @@ cuqui/
 
 The project **does not implement authentication**. No username or password required. Each session is identified by an auto-generated UUID stored in `localStorage`. No sensitive data or multi-tenancy.
 
-## License
 
-Academic project — TFM.

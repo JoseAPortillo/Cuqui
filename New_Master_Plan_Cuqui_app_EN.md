@@ -41,9 +41,7 @@
 
 ## 1. Project Overview
 
-"Cuqui" is a voice-assisted cooking timer system designed to manage multiple named timers through natural language commands. The reliable core of the project is a **mobile/web application plus FastAPI backend** that can process text and voice commands, synchronize timer state in real time, and demonstrate cost-aware AI integration.
-
-The smartwatch is included as a **companion prototype**, not as the main dependency of the project. Its role is to improve kitchen mobility by showing active timers and, if time allows, providing Push-to-Talk (PTT) voice capture from the wrist.
+"Cuqui" is a voice-assisted cooking timer system designed to manage multiple named timers through natural language commands. The reliable core of the project is a **mobile/web application plus FastAPI backend** that can process voice commands, synchronize timer state in real time, and demonstrate cost-aware AI integration.
 
 This scope makes the project more realistic for a 3-4 month TFM while still demonstrating AI, API design, synchronization, wearable integration, and reproducible deployment.
 
