@@ -20,7 +20,6 @@
   - [6. Architecture Strategy](#6-architecture-strategy)
   - [7. Data Flow](#7-data-flow)
     - [MVP Mobile Voice Flow](#mvp-mobile-voice-flow)
-    - [Watch Companion MVP Flow](#watch-companion-mvp-flow)
     - [Stretch Watch PTT Flow](#stretch-watch-ptt-flow)
   - [8. Realistic Development Plan: 12-16 Weeks](#8-realistic-development-plan-12-16-weeks)
   - [9. Deployment and Reproducibility](#9-deployment-and-reproducibility)
@@ -82,8 +81,7 @@ Therefore, Cuqui will be developed in layers:
 
 1. **Reliable Core:** backend, timer engine, parser, WebSocket sync, and mobile/PWA interface.
 2. **Voice Layer:** mobile microphone recording and ASR integration.
-3. **Companion Layer:** smartwatch timer display and basic controls.
-4. **Experimental Layer:** watch PTT audio capture, local ASR, VAD, and advanced LLM fallback.
+3. **Experimental Layer:** watch PTT audio capture, local ASR, VAD, and advanced LLM fallback.
 
 The TFM must remain defensible even if the watch microphone path has limitations. The mobile/backend system is the main product; the watch is a companion demonstration.
 
@@ -283,23 +281,8 @@ The architecture should stay simple enough to finish. Avoid adding abstractions 
   (6) Broadcasts new timer state through WebSocket
         |
         v
-[ Mobile/PWA + Watch Companion ]
+[ Mobile/PWA ]
   (7) Render updated countdowns
-```
-
-### Watch Companion MVP Flow
-
-```text
-[ FastAPI Backend ]
-  (1) Broadcasts timer state
-        |
-        v
-[ Mobile/PWA Bridge or Watch App ]
-  (2) Receives active timer state
-        |
-        v
-[ Smartwatch ]
-  (3) Displays timer names, countdowns, and alerts
 ```
 
 ### Stretch Watch PTT Flow
