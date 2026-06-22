@@ -16,11 +16,9 @@
   - [5. Technical Architecture](#5-technical-architecture)
   - [5.1 Backend: FastAPI + Python](#51-backend-fastapi--python)
   - [5.2 Mobile/PWA Client](#52-mobilepwa-client)
-  - [5.3 Smartwatch Companion Prototype](#53-smartwatch-companion-prototype)
   - [6. Architecture Strategy](#6-architecture-strategy)
   - [7. Data Flow](#7-data-flow)
     - [MVP Mobile Voice Flow](#mvp-mobile-voice-flow)
-    - [Stretch Watch PTT Flow](#stretch-watch-ptt-flow)
   - [8. Realistic Development Plan: 12-16 Weeks](#8-realistic-development-plan-12-16-weeks)
   - [9. Deployment and Reproducibility](#9-deployment-and-reproducibility)
     - [Defense Mode](#defense-mode)
@@ -28,11 +26,9 @@
     - [Important Constraint](#important-constraint)
   - [10. Budget and Cost Plan](#10-budget-and-cost-plan)
   - [11. Risks and Mitigations](#11-risks-and-mitigations)
-  - [11.1 Smartwatch Integration Risk](#111-smartwatch-integration-risk)
-  - [11.2 Watch Microphone Noise](#112-watch-microphone-noise)
-  - [11.3 Local ASR Performance](#113-local-asr-performance)
-  - [11.4 Overly Complex Natural Language](#114-overly-complex-natural-language)
-  - [11.5 Architecture Overhead](#115-architecture-overhead)
+  - [11.1 Local ASR Performance](#111-local-asr-performance)
+  - [11.2 Overly Complex Natural Language](#112-overly-complex-natural-language)
+  - [11.3 Architecture Overhead](#113-architecture-overhead)
   - [12. TFM Deliverables](#12-tfm-deliverables)
   - [13. Final Scope Decision](#13-final-scope-decision)
 
@@ -42,9 +38,9 @@
 
 "Cuqui" is a voice-assisted cooking timer system designed to manage multiple named timers through natural language commands. The reliable core of the project is a **mobile/web application plus FastAPI backend** that can process voice commands, synchronize timer state in real time, and demonstrate cost-aware AI integration.
 
-This scope makes the project more realistic for a 3-4 month TFM while still demonstrating AI, API design, synchronization, wearable integration, and reproducible deployment.
+This scope makes the project more realistic for a 3-4 month TFM while still demonstrating AI, API design, synchronization, and reproducible deployment.
 
-**Academic Objective:** Demonstrate applied AI integration, natural language command parsing, API design, real-time synchronization, wearable companion architecture, reproducible local deployment, and cost-aware engineering.
+**Academic Objective:** Demonstrate applied AI integration, natural language command parsing, API design, real-time synchronization, reproducible local deployment, and cost-aware engineering.
 
 **Practical Value:** Provide a useful, ergonomic cooking assistant that helps users manage several cooking tasks without manually editing timers during food preparation.
 
@@ -56,10 +52,8 @@ This scope makes the project more realistic for a 3-4 month TFM while still demo
 - Rule-based NLU for common cooking timer commands.
 - WebSocket synchronization between backend and UI.
 - Optional cloud ASR/LLM fallback behind cost controls.
-- Watch companion prototype for timer display.
 
 **Stretch Product Definition:**
-- Watch Push-to-Talk voice capture.
 - Local `faster-whisper` transcription as offline/demo mode.
 - Advanced command disambiguation with a local or cloud LLM.
 - Voice Activity Detection (VAD).
@@ -68,22 +62,19 @@ This scope makes the project more realistic for a 3-4 month TFM while still demo
 **Success Metrics:**
 - Rule-based NLU accuracy >90% on a controlled project test set.
 - End-to-end latency <3 seconds for mobile voice command to timer update in the demo environment.
-- Watch display synchronization latency <2 seconds when the companion app is connected.
 - Monthly operating cost close to $0 for the TFM demo, with fallback API usage capped under $5/month.
 
 ---
 
 ## 2. Honest Viability Strategy
 
-The project is viable if the build order protects the core system from wearable risk. The main technical risk is not the AI layer; it is smartwatch integration, audio capture permissions, device-to-device communication, and background behavior.
+The project is viable if the build order protects the core system from risky dependencies. The main technical risk is not the AI layer; it is audio capture permissions, device-to-device communication, and background behavior.
 
 Therefore, Cuqui will be developed in layers:
 
 1. **Reliable Core:** backend, timer engine, parser, WebSocket sync, and mobile/PWA interface.
 2. **Voice Layer:** mobile microphone recording and ASR integration.
-3. **Experimental Layer:** watch PTT audio capture, local ASR, VAD, and advanced LLM fallback.
-
-The TFM must remain defensible even if the watch microphone path has limitations. The mobile/backend system is the main product; the watch is a companion demonstration.
+3. **Experimental Layer:** local ASR, VAD, and advanced LLM fallback.
 
 ---
 
@@ -91,7 +82,6 @@ The TFM must remain defensible even if the watch microphone path has limitations
 
 - **Backend:** FastAPI running locally with Docker for the defense.
 - **Frontend/Mobile:** React/Vue/Svelte PWA, hosted locally for defense or on Cloudflare Pages/Vercel for public demo.
-- **Smartwatch Client:** Prefer **one platform only**. Recommended: Wear OS with Kotlin/Jetpack Compose if an Android watch is available.
 - **State Sync:** WebSockets from backend to clients.
 - **Timer Storage:** In-memory for MVP; SQLite only if session persistence becomes necessary.
 - **Speech-to-Text MVP:** Cloud ASR fallback or browser/mobile audio upload to backend.
@@ -206,25 +196,6 @@ Required features:
 - Real-time updates from backend.
 - Cost/debug panel for the TFM demo.
 
-The mobile/PWA must be fully usable even without the smartwatch.
-
-## 5.3 Smartwatch Companion Prototype
-
-The smartwatch app should be intentionally small.
-
-Required features:
-- Show active timers.
-- Show timer completion alerts.
-- Pause/silence timer alert.
-- Sync state from backend/mobile bridge.
-
-Optional features:
-- Push-to-Talk recording.
-- Hardware button shortcut for "Pause All" or "Silence".
-- Circular progress ring UI.
-
-Important decision: build for **one watch platform only**. Do not attempt both Wear OS and watchOS during the TFM unless the core project is already complete.
-
 ---
 
 ## 6. Architecture Strategy
@@ -258,7 +229,7 @@ backend/
       storage_memory/
 ```
 
-This keeps the timer logic independent from FastAPI, OpenAI, Whisper, or smartwatch-specific code.
+This keeps the timer logic independent from FastAPI, OpenAI, or Whisper-specific code.
 
 The architecture should stay simple enough to finish. Avoid adding abstractions that do not protect a real boundary.
 
@@ -285,18 +256,6 @@ The architecture should stay simple enough to finish. Avoid adding abstractions 
   (7) Render updated countdowns
 ```
 
-### Stretch Watch PTT Flow
-
-```text
-[ Smartwatch ]
-  (1) User presses PTT and records a short audio clip
-  (2) Sends compressed audio to mobile or backend
-        |
-        v
-[ Backend ]
-  (3) Transcribes, parses, executes, and broadcasts state
-```
-
 ---
 
 ## 8. Realistic Development Plan: 12-16 Weeks
@@ -305,12 +264,9 @@ The architecture should stay simple enough to finish. Avoid adding abstractions 
 | :--- | :--- | :---: | :--- |
 | **Phase 1: Core Domain + Parser** | Timer domain, command schema, rule parser, text command tests. | 2 weeks | Text commands correctly modify timers. |
 | **Phase 2: Backend + Sync** | FastAPI endpoints, WebSocket broadcasting, in-memory sessions. | 2 weeks | Multiple clients receive live timer updates. |
-| **Phase 3: Mobile/PWA MVP** | Timer dashboard, text command UI, voice button placeholder, alerts. | 2 weeks | Usable mobile/web app without watch. |
+| **Phase 3: Mobile/PWA MVP** | Timer dashboard, text command UI, voice button placeholder, alerts. | 2 weeks | Usable mobile/web app. |
 | **Phase 4: ASR Integration** | Mobile audio upload, local or cloud transcription, parser integration. | 2 weeks | Voice commands update timers reliably. |
-| **Phase 5: Watch Companion** | One-platform watch app, timer display, alert/silence control. | 3-5 weeks | Watch shows synchronized timers. |
-| **Phase 6: Polish + Thesis Prep** | Tests, kitchen noise trials, Docker, cost logs, defense script. | 2-3 weeks | Stable reproducible defense demo. |
-
-If time becomes tight, Phase 5 should be reduced to timer display only. The project remains valid because the main system is complete.
+| **Phase 5: Polish + Thesis Prep** | Tests, kitchen noise trials, Docker, cost logs, defense script. | 2-3 weeks | Stable reproducible defense demo. |
 
 ---
 
@@ -320,7 +276,6 @@ If time becomes tight, Phase 5 should be reduced to timer display only. The proj
 
 - Backend runs locally through Docker Compose.
 - Frontend/PWA runs locally or as a static build.
-- Watch app is sideloaded only if the companion prototype is ready.
 - Paid API fallbacks are controlled by environment variables.
 
 ### Public Demo Mode
@@ -347,7 +302,6 @@ Browser audio recording requires a secure context. Use `localhost` for local dev
 | NLU | Rule parser | $0 | Main path. |
 | LLM fallback | Low-cost JSON extraction | Cents/month | Only for low-confidence commands. |
 | TTS | Device/browser native TTS | $0 | Avoid paid TTS. |
-| Smartwatch testing | Existing device + sideloading | $0 | Avoid buying hardware late. |
 
 Cost controls:
 - Disable paid APIs by default.
@@ -359,31 +313,19 @@ Cost controls:
 
 ## 11. Risks and Mitigations
 
-## 11.1 Smartwatch Integration Risk
-
-**Risk:** Watch development can consume too much time due to permissions, connectivity, device differences, and background behavior.
-
-**Mitigation:** The watch is a companion prototype. The mobile/PWA remains fully functional without it. Build watch display before watch microphone capture.
-
-## 11.2 Watch Microphone Noise
-
-**Risk:** Kitchen noise and wrist microphone placement can reduce transcription quality.
-
-**Mitigation:** Use strict PTT. Keep audio clips short. Ask the user to bring the wrist near the mouth. Keep mobile PTT as the reliable fallback.
-
-## 11.3 Local ASR Performance
+## 11.1 Local ASR Performance
 
 **Risk:** `faster-whisper` may be too slow or inaccurate on the defense machine.
 
 **Mitigation:** Benchmark early. Keep cloud ASR fallback available. Cache demo test clips for repeatability.
 
-## 11.4 Overly Complex Natural Language
+## 11.2 Overly Complex Natural Language
 
 **Risk:** Complex conversational commands may create unreliable behavior.
 
 **Mitigation:** Define a controlled command grammar for MVP. Treat multi-action conversational parsing as stretch scope.
 
-## 11.5 Architecture Overhead
+## 11.3 Architecture Overhead
 
 **Risk:** Hexagonal Architecture may slow development if implemented too rigidly.
 
@@ -403,12 +345,9 @@ Required:
 - Demo script showing text command, voice command, timer sync, and cost logging.
 
 Recommended:
-- Smartwatch companion prototype for one platform.
-- Side-loadable watch package if available.
 - Local ASR benchmark results.
 
 Optional:
-- Watch PTT audio capture.
 - VAD.
 - Recipe RAG.
 - Advanced LLM fallback.
@@ -419,10 +358,10 @@ Optional:
 
 The project should be evaluated as:
 
-> A reliable voice-controlled multi-timer cooking assistant with a smartwatch companion prototype.
+> A reliable voice-controlled multi-timer cooking assistant.
 
 It should not be evaluated as:
 
-> A fully polished commercial smartwatch-first cooking assistant.
+> A project that depends on external hardware or platforms beyond the mobile/PWA.
 
-This makes the project honest, buildable, and academically strong. The core system proves the important engineering ideas, while the watch integration demonstrates future product potential without putting the entire TFM at risk.
+This makes the project honest, buildable, and academically strong.
