@@ -51,11 +51,15 @@ RUN addgroup --system --gid 1001 cuqui && \
     mkdir -p /app/data/hf_cache && \
     chown -R cuqui:cuqui /app/data
 
-EXPOSE 8000
+COPY . .
+
+ENV PORT=8000
+    
+EXPOSE ${PORT}
 
 USER cuqui
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/health')"
 
-ENTRYPOINT ["uvicorn", "cuqui.__main__:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["uvicorn", "cuqui.__main__:app", "--host", "0.0.0.0", "--port", ${PORT}]
