@@ -10,7 +10,7 @@ COPY frontend/ .
 RUN npm run build
 
 # ── Stage 2: Python runtime ─────────────────────────────────────────────────
-FROM python:3.14-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -22,16 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies (base + ASR + LLM extras)
 COPY backend/pyproject.toml ./
-RUN pip install --no-cache-dir \
-    "fastapi>=0.115" \
-    "uvicorn[standard]>=0.34" \
-    "websockets>=14.0" \
-    "pydantic>=2.0" \
-    "python-multipart>=0.0.18" \
-    "faster-whisper>=1.0" \
-    "openai>=1.0" \
-    "pywebpush>=1.14" \
-    "cryptography>=42.0"
+RUN pip install --no-cache-dir ".[asr,llm]"
 
 # Copy backend source (excluding tests)
 COPY backend/cuqui/ ./cuqui/
@@ -51,15 +42,12 @@ RUN addgroup --system --gid 1001 cuqui && \
     mkdir -p /app/data/hf_cache && \
     chown -R cuqui:cuqui /app/data
 
-COPY . .
 
-ENV PORT=8000
-    
-EXPOSE ${PORT}
+EXPOSE 8000
 
 USER cuqui
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/health')"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
-ENTRYPOINT ["uvicorn", "cuqui.__main__:app", "--host", "0.0.0.0", "--port", ${PORT}]
+ENTRYPOINT ["uvicorn", "cuqui.__main__:app", "--host", "0.0.0.0", "--port", "8000"]
