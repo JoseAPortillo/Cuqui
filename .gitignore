@@ -40,9 +40,11 @@ frontend/build/
 # Environment & secrets
 .env
 .env.local
-*.env
+.env.*
 *.db
 *.key
+hetznerkey
+hetznerkey.pub
 *.pem
 *.p12
 *.pfx

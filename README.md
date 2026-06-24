@@ -9,7 +9,7 @@ The system supports creating, pausing, resuming, extending, reducing, renaming, 
 ## TFM's Documents
 - The slice document for the TFM project is available at the following link: [https://docs.google.com/presentation/d/1mqL9VpTbUUpLkwpgoKqmWxSIKEmeiaz6zP-Z9wokacE/edit?usp=drive_link]
 - The github repository is available: [https://github.com/JoseAPortillo/Cuqui.git]
-- TFM proyecte's presentation is available at the following link: [https://drive.google.com/file/d/1-xmt8EM2CxQKcT3rPO98hKWMiF0lIC3t/view?usp=drive_link] 
+- TFM project's presentation is available at the following link: [https://drive.google.com/file/d/1-xmt8EM2CxQKcT3rPO98hKWMiF0lIC3t/view?usp=drive_link] 
 
 
 ## Tech Stack
