@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { Timer } from '../types/timer'
 import { CHIME_DATA_URI } from '../utils/chime'
+import { useCapacitor } from './useCapacitor'
 
 const STORAGE_KEY = 'cuqui_session_id'
 
@@ -37,7 +38,7 @@ async function registerPush(sessionId: string): Promise<void> {
       })
 
   const subJSON = sub.toJSON()
-  await fetch('/push/subscribe', {
+  await fetch('https://cuqui-app.duckdns.org/push/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -63,7 +64,7 @@ async function registerPushWithRetry(sessionId: string): Promise<void> {
 }
 
 async function fetchVapidKey(): Promise<string> {
-  const res = await fetch('/push/vapid-public-key')
+  const res = await fetch('https://cuqui-app.duckdns.org/push/vapid-public-key')
   if (!res.ok) throw new Error('Failed to fetch VAPID key')
   const { public_key } = await res.json()
   if (!public_key) throw new Error('No VAPID public key')
@@ -83,6 +84,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
   const pushRegistered = useRef(false)
   const playingAlarms = useRef(new Set<string>())
   const alarmIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
+  const { vibrateOnComplete, scheduleLocalNotification, cancelAllLocalNotifications, isNative } = useCapacitor()
 
   timersRef.current = timers
 
@@ -99,9 +101,10 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     }
 
     playChime()
+    vibrateOnComplete()
     const interval = setInterval(playChime, ALARM_LOOP_MS)
     alarmIntervals.current.set(timerId, interval)
-  }, [])
+  }, [vibrateOnComplete])
 
   const stopAlarm = useCallback((timerId: string) => {
     const interval = alarmIntervals.current.get(timerId)
@@ -188,6 +191,8 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     return () => navigator.serviceWorker.removeEventListener('controllerchange', onReady)
   }, [syncTimers])
 
+  const scheduledRemainingRef = useRef<Map<string, number>>(new Map())
+
   useEffect(() => {
     if (!swReady.current) return
     syncTimers()
@@ -198,7 +203,25 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
         stopAlarm(alarmId)
       }
     }
-  }, [timers, syncTimers])
+
+    if (isNative) {
+      const running = Object.values(timers).filter((t) => t.status === 'running' && t.remaining > 0)
+
+      const needsReschedule = running.some((t) => {
+        const prev = scheduledRemainingRef.current.get(t.id)
+        return prev === undefined || Math.abs(prev - t.remaining) >= 30
+      })
+
+      if (needsReschedule) {
+        cancelAllLocalNotifications()
+        scheduledRemainingRef.current.clear()
+        for (const timer of running) {
+          scheduleLocalNotification(timer.id, timer.name, timer.remaining)
+          scheduledRemainingRef.current.set(timer.id, timer.remaining)
+        }
+      }
+    }
+  }, [timers, syncTimers, isNative, scheduleLocalNotification, cancelAllLocalNotifications])
 
   useEffect(() => {
     const hasRunning = Object.values(timers).some((t) => t.status === 'running')
