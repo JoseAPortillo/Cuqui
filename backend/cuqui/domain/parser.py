@@ -373,15 +373,17 @@ class TimerParser:
 
     @staticmethod
     def _build_rename_timer(match: re.Match) -> CuquiCommand:
-        name = match.group(1).strip()
-        # Handle explicit separator: "old_name a new_name" (ES) or "old_name to new_name" (EN).
-        # The regex can capture the old name too when the user specifies which timer to rename.
-        # Take the part after the LAST separator as the new name.
+        raw = match.group(1).strip()
+        # Handle separator: "old_name a new_name" (ES) or "old_name to new_name" (EN).
+        target_name = None
+        new_name = raw
         for sep in (" a ", " to "):
-            if sep in name:
-                name = name.rsplit(sep, 1)[-1].strip()
+            if sep in raw:
+                parts = raw.rsplit(sep, 1)
+                target_name = parts[0].strip() or None
+                new_name = parts[1].strip()
                 break
-        return RenameTimerCommand(name=name)
+        return RenameTimerCommand(name=new_name, target_name=target_name)
 
     @staticmethod
     def _build_query_timer(match: re.Match) -> CuquiCommand:

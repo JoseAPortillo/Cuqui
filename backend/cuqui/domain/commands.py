@@ -147,9 +147,10 @@ class ReduceTimerCommand:
 
 @dataclass(frozen=True)
 class RenameTimerCommand:
-    """Rename an active timer (name is required)."""
+    """Rename an active timer (name is required, target_name is the timer to rename)."""
 
     name: str
+    target_name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_name(self.name)

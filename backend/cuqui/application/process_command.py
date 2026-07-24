@@ -111,10 +111,10 @@ def process_command(
             timer_id = _resolve_timer_id(manager, session_id, n)
             return manager.reduce_timer(session_id, timer_id, d)
 
-        case RenameTimerCommand(name=n):
-            # Rename command's ``name`` is the NEW name — not a lookup key.
-            # We need the timer to rename; resolve the "last" timer.
-            timer_id = _resolve_timer_id(manager, session_id, None)
+        case RenameTimerCommand(name=n, target_name=target):
+            # If user specified which timer to rename, resolve by that name.
+            # Otherwise fall back to the last timer.
+            timer_id = _resolve_timer_id(manager, session_id, target)
             return manager.rename_timer(session_id, timer_id, n)
 
         case QueryTimerCommand(name=n):
