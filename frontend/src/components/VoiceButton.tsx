@@ -1,14 +1,13 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getFriendlyError } from '../utils/errorMessages'
 import type { FriendlyError } from '../utils/errorMessages'
+import { isNativePlatform } from '../utils/platform'
+import NativeAudio from '../plugins/NativeAudio'
+import { pcmBase64ToWav } from '../utils/audioConvert'
 
 interface VoiceButtonProps {
   onAudio: (blob: Blob) => Promise<void>
   disabled?: boolean
-}
-
-function isMediaRecorderSupported(): boolean {
-  return typeof MediaRecorder !== 'undefined'
 }
 
 const MIN_AUDIO_SIZE = 1024
@@ -18,10 +17,38 @@ export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
   const [error, setVoiceError] = useState<FriendlyError | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
-  const [supported] = useState(isMediaRecorderSupported)
+  const [isNative, setIsNative] = useState(false)
+  const [supported, setSupported] = useState(false)
+
+  useEffect(() => {
+    const native = isNativePlatform()
+    console.log('[VoiceButton] isNativePlatform():', native, 'MediaRecorder:', typeof MediaRecorder)
+    setIsNative(native)
+    setSupported(native || typeof MediaRecorder !== 'undefined')
+  }, [])
 
   const handleStart = useCallback(async () => {
     setVoiceError(null)
+    console.log('[VoiceButton] handleStart - isNative:', isNative)
+
+    if (isNative) {
+      try {
+        console.log('[VoiceButton] calling NativeAudio.startRecording()')
+        await NativeAudio.startRecording()
+        console.log('[VoiceButton] recording started')
+        setRecording(true)
+      } catch (err) {
+        console.error('[VoiceButton] native error:', err)
+        const msg = err instanceof Error ? err.message : String(err)
+        if (msg.includes('permission') || msg.includes('Permission')) {
+          setVoiceError(getFriendlyError('mic_permission_denied'))
+        } else {
+          setVoiceError(getFriendlyError('mic_not_available'))
+        }
+      }
+      return
+    }
+
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         setVoiceError(getFriendlyError('mic_not_available'))
@@ -74,14 +101,32 @@ export function VoiceButton({ onAudio, disabled }: VoiceButtonProps) {
         setVoiceError(getFriendlyError('mic_not_available'))
       }
     }
-  }, [onAudio])
+  }, [onAudio, isNative])
 
-  const handleStop = useCallback(() => {
+  const handleStop = useCallback(async () => {
+    if (isNative) {
+      try {
+        const result = await NativeAudio.stopRecording()
+        const wav = pcmBase64ToWav(result.audioData, result.sampleRate, result.channels, result.bitDepth)
+        if (wav.size < MIN_AUDIO_SIZE) {
+          setVoiceError(getFriendlyError('recording_empty'))
+          setRecording(false)
+          return
+        }
+        setRecording(false)
+        await onAudio(wav)
+      } catch (err) {
+        setVoiceError(getFriendlyError('recording_empty'))
+        setRecording(false)
+      }
+      return
+    }
+
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop()
     }
     setRecording(false)
-  }, [])
+  }, [onAudio, isNative])
 
   if (!supported) return null
 

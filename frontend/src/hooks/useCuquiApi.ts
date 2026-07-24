@@ -17,6 +17,8 @@ function getSessionId(): string {
   return id
 }
 
+const API_BASE = 'https://cuqui-app.duckdns.org'
+
 interface CuquiApiState {
   timers: Record<string, Timer>
   connectionStatus: ConnectionStatus
@@ -50,9 +52,7 @@ export function useCuquiApi(): CuquiApiState {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
     setConnectionStatus('connecting')
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host = window.location.host
-    const url = `${protocol}//${host}/ws/session/${sessionId.current}`
+    const url = `wss://cuqui-app.duckdns.org/ws/session/${sessionId.current}`
 
     const ws = new WebSocket(url)
     wsRef.current = ws
@@ -88,7 +88,7 @@ export function useCuquiApi(): CuquiApiState {
   useEffect(() => {
     async function fetchTimers() {
       try {
-        const res = await fetch(`/timers?session_id=${sessionId.current}`)
+        const res = await fetch(`${API_BASE}/timers?session_id=${sessionId.current}`)
         if (!res.ok) return
         const data: Timer[] = await res.json()
         const map: Record<string, Timer> = {}
@@ -138,7 +138,7 @@ export function useCuquiApi(): CuquiApiState {
   const sendCommand = useCallback(async (text: string) => {
     setApiError(null)
     try {
-      const res = await fetch('/commands/text', {
+      const res = await fetch(`${API_BASE}/commands/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, session_id: sessionId.current }),
@@ -170,7 +170,7 @@ export function useCuquiApi(): CuquiApiState {
       formData.append('audio', audioBlob, 'recording.wav')
       formData.append('session_id', sessionId.current)
 
-      const res = await fetch('/commands/audio', {
+      const res = await fetch(`${API_BASE}/commands/audio`, {
         method: 'POST',
         body: formData,
       })
@@ -198,7 +198,7 @@ export function useCuquiApi(): CuquiApiState {
       setApiError(null)
       setLoadingTimers((prev) => ({ ...prev, [timerId]: true }))
       try {
-        const res = await fetch(`/timers/${timerId}/${action}`, {
+          const res = await fetch(`${API_BASE}/timers/${timerId}/${action}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: sessionId.current }),
@@ -234,7 +234,7 @@ export function useCuquiApi(): CuquiApiState {
     setApiError(null)
     const sid = sessionId.current
     try {
-      const res = await fetch(`/timers/${timerId}?session_id=${encodeURIComponent(sid)}`, {
+      const res = await fetch(`${API_BASE}/timers/${timerId}?session_id=${encodeURIComponent(sid)}`, {
         method: 'DELETE',
       })
 
@@ -259,7 +259,7 @@ export function useCuquiApi(): CuquiApiState {
 
   const checkApiKey = useCallback(async () => {
     try {
-      const res = await fetch(`/settings/api-key?session_id=${encodeURIComponent(sessionId.current)}`)
+      const res = await fetch(`${API_BASE}/settings/api-key?session_id=${encodeURIComponent(sessionId.current)}`)
       if (res.ok) {
         const data: ApiKeyStatus = await res.json()
         setApiKeyStatus(data)
@@ -272,7 +272,7 @@ export function useCuquiApi(): CuquiApiState {
   const saveApiKey = useCallback(async (key: string) => {
     setApiError(null)
     try {
-      const res = await fetch('/settings/api-key', {
+      const res = await fetch(`${API_BASE}/settings/api-key`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId.current, api_key: key }),
