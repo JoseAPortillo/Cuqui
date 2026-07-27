@@ -198,6 +198,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
   const scheduleNativeAlarm = useCallback(async (timerId: string, timerName: string, seconds: number) => {
     if (!isNative) return
     try {
+      console.log('[scheduleNativeAlarm] Calling Alarm.schedule with seconds:', seconds)
       await Alarm.schedule({ timerId, timerName, seconds })
     } catch { /* ignore */ }
   }, [isNative])
@@ -221,12 +222,12 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     }
 
     if (isNative) {
-      const running = Object.values(timers).filter((t) => t.status === 'running' && t.remaining > 0)
+      const running = Object.values(timers).filter((t) => t.status === 'running')
       const runningIds = new Set(running.map((t) => t.id))
       const completedIds = new Set(Object.values(timers).filter((t) => t.status === 'completed').map((t) => t.id))
 
       async function updateAlarms() {
-        // Cancel native alarms for timers that were explicitly stopped/removed (not completed)
+        // Cancel native alarms for timers that were explicitly stopped/removed (not completed or running)
         const toCancel: string[] = []
         for (const [timerId] of scheduledAlarmsRef.current) {
           if (!runningIds.has(timerId) && !completedIds.has(timerId)) {
@@ -238,11 +239,10 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
           scheduledAlarmsRef.current.delete(timerId)
         }
 
-        // Schedule or reschedule native alarms for running timers
+        // Schedule native alarms for running timers (only once when timer starts)
         for (const timer of running) {
-          const prev = scheduledAlarmsRef.current.get(timer.id)
-          if (prev === undefined || Math.abs(prev - timer.remaining) >= 5) {
-            await cancelNativeAlarm(timer.id)
+          if (!scheduledAlarmsRef.current.has(timer.id) && timer.remaining > 0) {
+            console.log('[useTimerNotifications] Scheduling native alarm for timer', timer.id, 'remaining:', timer.remaining, 'duration:', timer.duration, 'status:', timer.status)
             await scheduleNativeAlarm(timer.id, timer.name, timer.remaining)
             scheduledAlarmsRef.current.set(timer.id, timer.remaining)
           }
