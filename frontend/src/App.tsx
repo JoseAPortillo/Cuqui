@@ -55,7 +55,7 @@ export default function App() {
 
       <header className="app-header">
         <h1 className="app-header__title">Cuqui</h1>
-        <p className="app-header__subtitle">Asistente de cocina inteligente - MVP</p>
+        <p className="app-header__subtitle">Asistente de cocina inteligente</p>
       </header>
 
       <button

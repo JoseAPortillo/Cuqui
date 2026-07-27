@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import type { Timer } from '../types/timer'
 import { CHIME_DATA_URI } from '../utils/chime'
 import { useCapacitor } from './useCapacitor'
+import Alarm from '../plugins/Alarm'
 
 const STORAGE_KEY = 'cuqui_session_id'
 
@@ -83,8 +84,8 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
   const pingInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const pushRegistered = useRef(false)
   const playingAlarms = useRef(new Set<string>())
-  const alarmIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
-  const { vibrateOnComplete, scheduleLocalNotification, cancelAllLocalNotifications, isNative } = useCapacitor()
+    const alarmIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
+  const { isNative } = useCapacitor()
 
   timersRef.current = timers
 
@@ -101,10 +102,11 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     }
 
     playChime()
-    vibrateOnComplete()
-    const interval = setInterval(playChime, ALARM_LOOP_MS)
-    alarmIntervals.current.set(timerId, interval)
-  }, [vibrateOnComplete])
+
+    // Chime every 900ms for in-app feedback
+    const chimeInterval = setInterval(playChime, ALARM_LOOP_MS)
+    alarmIntervals.current.set(timerId, chimeInterval)
+  }, [])
 
   const stopAlarm = useCallback((timerId: string) => {
     const interval = alarmIntervals.current.get(timerId)
@@ -191,7 +193,21 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
     return () => navigator.serviceWorker.removeEventListener('controllerchange', onReady)
   }, [syncTimers])
 
-  const scheduledRemainingRef = useRef<Map<string, number>>(new Map())
+  const scheduledAlarmsRef = useRef<Map<string, number>>(new Map())
+
+  const scheduleNativeAlarm = useCallback(async (timerId: string, timerName: string, seconds: number) => {
+    if (!isNative) return
+    try {
+      await Alarm.schedule({ timerId, timerName, seconds })
+    } catch { /* ignore */ }
+  }, [isNative])
+
+  const cancelNativeAlarm = useCallback(async (timerId: string) => {
+    if (!isNative) return
+    try {
+      await Alarm.cancel({ timerId })
+    } catch { /* ignore */ }
+  }, [isNative])
 
   useEffect(() => {
     if (!swReady.current) return
@@ -206,22 +222,36 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
 
     if (isNative) {
       const running = Object.values(timers).filter((t) => t.status === 'running' && t.remaining > 0)
+      const runningIds = new Set(running.map((t) => t.id))
+      const completedIds = new Set(Object.values(timers).filter((t) => t.status === 'completed').map((t) => t.id))
 
-      const needsReschedule = running.some((t) => {
-        const prev = scheduledRemainingRef.current.get(t.id)
-        return prev === undefined || Math.abs(prev - t.remaining) >= 30
-      })
+      async function updateAlarms() {
+        // Cancel native alarms for timers that were explicitly stopped/removed (not completed)
+        const toCancel: string[] = []
+        for (const [timerId] of scheduledAlarmsRef.current) {
+          if (!runningIds.has(timerId) && !completedIds.has(timerId)) {
+            toCancel.push(timerId)
+          }
+        }
+        for (const timerId of toCancel) {
+          await cancelNativeAlarm(timerId)
+          scheduledAlarmsRef.current.delete(timerId)
+        }
 
-      if (needsReschedule) {
-        cancelAllLocalNotifications()
-        scheduledRemainingRef.current.clear()
+        // Schedule or reschedule native alarms for running timers
         for (const timer of running) {
-          scheduleLocalNotification(timer.id, timer.name, timer.remaining)
-          scheduledRemainingRef.current.set(timer.id, timer.remaining)
+          const prev = scheduledAlarmsRef.current.get(timer.id)
+          if (prev === undefined || Math.abs(prev - timer.remaining) >= 5) {
+            await cancelNativeAlarm(timer.id)
+            await scheduleNativeAlarm(timer.id, timer.name, timer.remaining)
+            scheduledAlarmsRef.current.set(timer.id, timer.remaining)
+          }
         }
       }
+
+      updateAlarms()
     }
-  }, [timers, syncTimers, isNative, scheduleLocalNotification, cancelAllLocalNotifications])
+  }, [timers, syncTimers, isNative, cancelNativeAlarm, scheduleNativeAlarm])
 
   useEffect(() => {
     const hasRunning = Object.values(timers).some((t) => t.status === 'running')
