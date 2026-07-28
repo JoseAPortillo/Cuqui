@@ -86,13 +86,29 @@ class FasterWhisperAdapter:
         compute_type: str = "int8",
         language: str = "es",
     ) -> None:
+        print(f"[FasterWhisper] Initializing with model_size={model_size}")
         self._model_size = model_size
         self._device = device
         self._compute_type = compute_type
         self._language = language
         self._model: WhisperModel | None = None
-        self._model_status: str = "pending"
+        self._model_status: str = "loading"
         self._download_progress: float = 0.0
+        
+        # Load model immediately
+        try:
+            print(f"[FasterWhisper] Loading model {model_size}...")
+            self._model = WhisperModel(
+                model_size,
+                device=device,
+                compute_type=compute_type,
+            )
+            self._model_status = "ready"
+            self._download_progress = 1.0
+            print(f"[FasterWhisper] Model {model_size} loaded successfully!")
+        except Exception as exc:
+            self._model_status = "error"
+            print(f"[FasterWhisper] Failed to load model: {exc}")
 
     @property
     def model_status(self) -> str:
@@ -159,6 +175,8 @@ class FasterWhisperAdapter:
 
     async def _ensure_model(self) -> WhisperModel:
         if self._model is None:
+            self._model_status = "loading"
+            log.info("Loading faster-whisper model %r...", self._model_size)
             loop = asyncio.get_running_loop()
             self._model = await loop.run_in_executor(
                 None,

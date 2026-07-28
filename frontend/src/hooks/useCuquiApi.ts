@@ -36,6 +36,8 @@ interface CuquiApiState {
   apiKeyStatus: ApiKeyStatus | null
   saveApiKey: (key: string) => Promise<void>
   checkApiKey: () => Promise<void>
+  modelReady: boolean
+  modelStatus: string
 }
 
 export function useCuquiApi(): CuquiApiState {
@@ -257,6 +259,8 @@ export function useCuquiApi(): CuquiApiState {
   }, [])
 
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null)
+  const [modelReady, setModelReady] = useState(false)
+  const [modelStatus, setModelStatus] = useState('pending')
 
   const checkApiKey = useCallback(async () => {
     try {
@@ -288,9 +292,25 @@ export function useCuquiApi(): CuquiApiState {
     }
   }, [checkApiKey])
 
+  const checkModel = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/settings/model`)
+      if (res.ok) {
+        const data = await res.json()
+        setModelStatus(data.model_status || 'ready')
+        setModelReady(data.model_status === 'ready')
+      }
+    } catch {
+      setModelReady(false)
+    }
+  }, [])
+
   useEffect(() => {
     checkApiKey()
-  }, [checkApiKey])
+    checkModel()
+    const interval = setInterval(checkModel, 2000)
+    return () => clearInterval(interval)
+  }, [checkApiKey, checkModel])
 
   return {
     timers,
@@ -308,5 +328,8 @@ export function useCuquiApi(): CuquiApiState {
     apiKeyStatus,
     saveApiKey,
     checkApiKey,
+    modelReady,
+    modelStatus,
   }
 }
+

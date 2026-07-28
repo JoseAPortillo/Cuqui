@@ -18,7 +18,7 @@ function getSessionId(): string {
 }
 
 export default function App() {
-  const { timers, connectionStatus, alerts, sendAudio, dismissAlert, error, pauseTimer, resumeTimer, cancelTimer, deleteTimer, loadingTimers, apiKeyStatus, saveApiKey } = useCuquiApi()
+  const { timers, connectionStatus, alerts, sendAudio, dismissAlert, error, pauseTimer, resumeTimer, cancelTimer, deleteTimer, loadingTimers, apiKeyStatus, saveApiKey, modelReady, modelStatus } = useCuquiApi()
   const sessionId = getSessionId()
   const [showApiKey, setShowApiKey] = useState(false)
 
@@ -101,8 +101,21 @@ export default function App() {
       </main>
 
       <div className="voice-fixed">
-        <VoiceButton onAudio={sendAudio} disabled={connectionStatus !== 'connected'} />
+        <VoiceButton onAudio={sendAudio} disabled={connectionStatus !== 'connected' || !modelReady} />
       </div>
+
+      {!modelReady && connectionStatus === 'connected' && (
+        <div className="model-overlay">
+          <div className="model-overlay__spinner" />
+          <p className="model-overlay__text">
+            {modelStatus === 'downloading'
+              ? 'Descargando modelo de voz…'
+              : modelStatus === 'pending'
+                ? 'Preparando modelo de voz…'
+                : 'Cargando modelo de voz…'}
+          </p>
+        </div>
+      )}
 
       <DebugPanel
         connectionStatus={connectionStatus}

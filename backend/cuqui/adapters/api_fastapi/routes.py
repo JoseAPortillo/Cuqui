@@ -36,6 +36,7 @@ from fastapi import (
     File,
     Form,
     Query,
+    Request,
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
@@ -646,10 +647,7 @@ _model_progress_queues: list[asyncio.Queue] = []
 
 def _get_faster_whisper(app):
     """Extract the FasterWhisperAdapter from app.state (if available)."""
-    stt = getattr(app.state, "speech_to_text", None)
-    if stt and hasattr(stt, "primary"):
-        return stt.primary
-    return None
+    return getattr(app.state, "faster_whisper", None)
 
 
 def _broadcast_model_progress(current: int, total: int, desc: str) -> None:
@@ -686,10 +684,12 @@ def _broadcast_model_error(message: str) -> None:
 
 
 @router.get("/settings/model")
-async def get_model_settings(request) -> dict[str, str]:
-    """Return the current Whisper model size."""
+async def get_model_settings(request: Request) -> dict[str, str]:
+    """Return the current Whisper model size and status."""
     fa = _get_faster_whisper(request.app)
-    return {"model_size": fa.model_size if fa else "small"}
+    model_size = fa.model_size if fa else "small"
+    model_status = fa.model_status if fa else "pending"
+    return {"model_size": model_size, "model_status": model_status}
 
 
 # ── WS /ws/session/{session_id} ───────────────────────────────────────────────
@@ -751,18 +751,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.sync_service = SyncService()
     app.state.intent_parser = TimerParserAdapter(lang="es")
 
-    whisper_model_size = os.getenv("CUQUI_WHISPER_MODEL", "medium")
+    whisper_model_size = os.getenv("CUQUI_WHISPER_MODEL", "small")
     faster_whisper = FasterWhisperAdapter(model_size=whisper_model_size, language="es")
+    app.state.faster_whisper = faster_whisper
 
-    # Pre-download model in background with progress streaming
-    async def _preload_with_progress() -> None:
-        try:
-            await faster_whisper.preload_model(progress_callback=_broadcast_model_progress)
-            _broadcast_model_ready()
-        except Exception as exc:
-            _broadcast_model_error(str(exc))
-
-    asyncio.create_task(_preload_with_progress())
+    # Preload model synchronously during startup
+    print(f"[STARTUP] Loading model: {whisper_model_size}")
+    try:
+        await faster_whisper.preload_model()
+        print(f"[STARTUP] Model loaded successfully")
+    except Exception as exc:
+        print(f"[STARTUP] Failed to load model: {exc}")
 
     openai_asr = OpenAIWhisperAdapter(
         language="es",
