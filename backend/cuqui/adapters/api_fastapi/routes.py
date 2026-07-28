@@ -594,6 +594,104 @@ async def unsubscribe_push(
     return {"status": "ok"}
 
 
+# ── Model progress SSE ────────────────────────────────────────────────────────
+
+
+@router.get("/model/progress")
+async def model_progress(request):
+    """SSE stream for Whisper model download/load progress.
+
+    Events:
+      - ``progress``: ``{ "current": int, "total": int, "description": str }``
+      - ``ready``: ``{ "status": "ready" }``
+      - ``error``: ``{ "status": "error", "message": str }``
+    """
+    from fastapi.responses import StreamingResponse
+
+    import asyncio as _asyncio
+
+    queue: asyncio.Queue[dict | None] = asyncio.Queue()
+    _model_progress_queues.append(queue)
+
+    async def _stream():
+        try:
+            # Send current status immediately
+            fa = _get_faster_whisper(request.app)
+            if fa and fa.model_status == "ready":
+                yield f"data: {__import__('json').dumps({'type': 'ready'})}\n\n"
+                return
+            if fa and fa.model_status == "error":
+                yield f"data: {__import__('json').dumps({'type': 'error', 'message': 'Model load failed'})}\n\n"
+                return
+
+            while True:
+                try:
+                    msg = await _asyncio.wait_for(queue.get(), timeout=30)
+                except _asyncio.TimeoutError:
+                    # Send keepalive
+                    yield ": keepalive\n\n"
+                    continue
+                if msg is None:
+                    break
+                yield f"data: {__import__('json').dumps(msg)}\n\n"
+        finally:
+            if queue in _model_progress_queues:
+                _model_progress_queues.remove(queue)
+
+    return StreamingResponse(_stream(), media_type="text/event-stream")
+
+
+_model_progress_queues: list[asyncio.Queue] = []
+
+
+def _get_faster_whisper(app):
+    """Extract the FasterWhisperAdapter from app.state (if available)."""
+    stt = getattr(app.state, "speech_to_text", None)
+    if stt and hasattr(stt, "primary"):
+        return stt.primary
+    return None
+
+
+def _broadcast_model_progress(current: int, total: int, desc: str) -> None:
+    """Push progress to all connected SSE clients."""
+    msg = {"type": "progress", "current": current, "total": total, "description": desc}
+    for q in list(_model_progress_queues):
+        try:
+            q.put_nowait(msg)
+        except asyncio.QueueFull:
+            pass
+
+
+def _broadcast_model_ready() -> None:
+    """Notify all connected SSE clients that the model is ready."""
+    for q in list(_model_progress_queues):
+        try:
+            q.put_nowait({"type": "ready"})
+            q.put_nowait(None)  # sentinel: close stream
+        except asyncio.QueueFull:
+            pass
+
+
+def _broadcast_model_error(message: str) -> None:
+    """Notify all connected SSE clients that the model failed to load."""
+    for q in list(_model_progress_queues):
+        try:
+            q.put_nowait({"type": "error", "message": message})
+            q.put_nowait(None)
+        except asyncio.QueueFull:
+            pass
+
+
+# ── Model settings ────────────────────────────────────────────────────────────
+
+
+@router.get("/settings/model")
+async def get_model_settings(request) -> dict[str, str]:
+    """Return the current Whisper model size."""
+    fa = _get_faster_whisper(request.app)
+    return {"model_size": fa.model_size if fa else "small"}
+
+
 # ── WS /ws/session/{session_id} ───────────────────────────────────────────────
 
 
@@ -653,7 +751,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.sync_service = SyncService()
     app.state.intent_parser = TimerParserAdapter(lang="es")
 
-    faster_whisper = FasterWhisperAdapter(model_size="medium", language="es")
+    whisper_model_size = os.getenv("CUQUI_WHISPER_MODEL", "medium")
+    faster_whisper = FasterWhisperAdapter(model_size=whisper_model_size, language="es")
+
+    # Pre-download model in background with progress streaming
+    async def _preload_with_progress() -> None:
+        try:
+            await faster_whisper.preload_model(progress_callback=_broadcast_model_progress)
+            _broadcast_model_ready()
+        except Exception as exc:
+            _broadcast_model_error(str(exc))
+
+    asyncio.create_task(_preload_with_progress())
+
     openai_asr = OpenAIWhisperAdapter(
         language="es",
     ) if os.getenv("OPENAI_API_KEY") else None

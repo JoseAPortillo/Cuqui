@@ -25,3 +25,10 @@ export interface ApiKeyStatus {
   has_key: boolean
   masked_key: string | null
 }
+
+export interface ModelStatus {
+  status: 'pending' | 'downloading' | 'ready' | 'error'
+  current: number
+  total: number
+  description: string
+}

@@ -6,7 +6,7 @@ import { VoiceButton } from './components/VoiceButton'
 import { AlertBanner } from './components/AlertBanner'
 import { DebugPanel } from './components/DebugPanel'
 import { CommandsHelp } from './components/CommandsHelp'
-import { ApiKeySettings } from './components/ApiKeySettings'
+import { Settings } from './components/ApiKeySettings'
 import './App.css'
 
 function getSessionId(): string {
@@ -18,7 +18,7 @@ function getSessionId(): string {
 }
 
 export default function App() {
-  const { timers, connectionStatus, alerts, sendAudio, dismissAlert, error, pauseTimer, resumeTimer, cancelTimer, deleteTimer, loadingTimers, apiKeyStatus, saveApiKey } = useCuquiApi()
+  const { timers, connectionStatus, alerts, sendAudio, dismissAlert, error, pauseTimer, resumeTimer, cancelTimer, deleteTimer, loadingTimers, apiKeyStatus, saveApiKey, modelStatus } = useCuquiApi()
   const sessionId = getSessionId()
   const [showApiKey, setShowApiKey] = useState(false)
 
@@ -58,9 +58,35 @@ export default function App() {
 
       <CommandsHelp />
 
+      {modelStatus.status === 'downloading' && (
+        <div className="model-loading">
+          <div className="model-loading__card">
+            <div className="model-loading__spinner" />
+            <h2 className="model-loading__title">Descargando modelo de voz</h2>
+            <p className="model-loading__desc">
+              Preparando Whisper {modelStatus.description && `— ${modelStatus.description}`}
+            </p>
+            {modelStatus.total > 0 && (
+              <div className="model-loading__bar-container">
+                <div
+                  className="model-loading__bar"
+                  style={{ width: `${Math.min(100, (modelStatus.current / modelStatus.total) * 100)}%` }}
+                />
+              </div>
+            )}
+            <p className="model-loading__percent">
+              {modelStatus.total > 0
+                ? `${Math.round((modelStatus.current / modelStatus.total) * 100)}%`
+                : 'Preparando…'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {showApiKey && (
-        <ApiKeySettings
+        <Settings
           apiKeyStatus={apiKeyStatus}
+          modelStatus={modelStatus}
           onSave={saveApiKey}
           onClose={() => setShowApiKey(false)}
         />
