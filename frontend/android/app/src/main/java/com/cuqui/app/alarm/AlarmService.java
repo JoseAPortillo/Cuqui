@@ -37,6 +37,18 @@ public class AlarmService extends Service {
     private MediaPlayer mediaPlayer;
     private Vibrator vibrator;
     private PowerManager.WakeLock wakeLock;
+    private android.os.Handler vibrationHandler;
+    private final Runnable vibrationRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (vibrator != null && vibrator.hasVibrator()) {
+                long[] pattern = {0, 800, 400};
+                int[] amplitudes = {0, 255, 0};
+                vibrator.vibrate(VibrationEffect.createWaveform(pattern, amplitudes, -1));
+                vibrationHandler.postDelayed(this, 1200);
+            }
+        }
+    };
 
     @SuppressWarnings("deprecation")
     private Vibrator getVibrator() {
@@ -182,9 +194,9 @@ public class AlarmService extends Service {
         try {
             vibrator = getVibrator();
             if (vibrator != null && vibrator.hasVibrator()) {
-                long[] pattern = {0, 1000, 500, 1000, 500};
-                vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0));
-                Log.d(TAG, "Vibration started with looping pattern");
+                vibrationHandler = new android.os.Handler(getMainLooper());
+                vibrationHandler.post(vibrationRunnable);
+                Log.d(TAG, "Vibration started with manual loop");
             }
         } catch (Exception e) {
             Log.e(TAG, "Vibration failed", e);
@@ -193,6 +205,9 @@ public class AlarmService extends Service {
 
     private void stopEverything() {
         Log.d(TAG, "stopEverything");
+        try {
+            if (vibrationHandler != null) { vibrationHandler.removeCallbacks(vibrationRunnable); vibrationHandler = null; }
+        } catch (Exception ignored) {}
         try {
             if (vibrator != null) { vibrator.cancel(); vibrator = null; }
         } catch (Exception ignored) {}
