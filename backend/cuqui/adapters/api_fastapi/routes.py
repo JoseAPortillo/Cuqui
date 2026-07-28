@@ -637,7 +637,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from cuqui.adapters.asr import SpeechToTextRouter
     from cuqui.adapters.asr_faster_whisper import FasterWhisperAdapter
     from cuqui.adapters.asr_openai import OpenAIWhisperAdapter
-    from cuqui.adapters.parser_rules.adapter import TimerParserAdapter
+    from cuqui.adapters.parser_llm.adapter import LLMIntentParser
     from cuqui.adapters.push_webpush import WebPushAdapter
     from cuqui.adapters.storage_sqlite import SqliteTimerStore
 
@@ -651,7 +651,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.timer_store = store
     app.state.timer_manager = TimerManager(store=store)
     app.state.sync_service = SyncService()
-    app.state.intent_parser = TimerParserAdapter(lang="es")
+    app.state.intent_parser = LLMIntentParser()
 
     faster_whisper = FasterWhisperAdapter(model_size="small", language="es")
     openai_asr = OpenAIWhisperAdapter(
