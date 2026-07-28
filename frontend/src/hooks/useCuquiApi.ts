@@ -17,7 +17,8 @@ function getSessionId(): string {
   return id
 }
 
-const API_BASE = 'https://cuqui-app.duckdns.org'
+const API_BASE = 'http://192.168.1.137:8000'
+const WS_BASE = 'ws://192.168.1.137:8000'
 
 interface CuquiApiState {
   timers: Record<string, Timer>
@@ -60,7 +61,7 @@ export function useCuquiApi(): CuquiApiState {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
     setConnectionStatus('connecting')
-    const url = `wss://cuqui-app.duckdns.org/ws/session/${sessionId.current}`
+    const url = `${WS_BASE}/ws/session/${sessionId.current}`
 
     const ws = new WebSocket(url)
     wsRef.current = ws
