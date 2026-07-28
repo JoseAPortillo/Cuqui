@@ -122,7 +122,6 @@ public class AlarmService extends Service {
 
         startSound();
         startVibration();
-        launchAlarmActivity(timerName);
 
         new android.os.Handler(getMainLooper()).postDelayed(this::stopEverything, 10 * 60 * 1000L);
 
@@ -142,14 +141,7 @@ public class AlarmService extends Service {
         PendingIntent stopPI = PendingIntent.getService(this, 0, stopIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        Intent openIntent = new Intent(this, AlarmActivity.class);
-        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        openIntent.putExtra("timerId", timerId);
-        openIntent.putExtra("timerName", timerName);
-        PendingIntent openPI = PendingIntent.getActivity(this, 100, openIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        Log.d(TAG, "Building notification with fullScreenIntent for timer " + timerId);
+        Log.d(TAG, "Building notification for timer " + timerId);
         
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
@@ -158,28 +150,11 @@ public class AlarmService extends Service {
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setOngoing(true)
-                .setContentIntent(openPI)
-                .setFullScreenIntent(openPI, true)
-                .addAction(0, "OK", stopPI)
+                .setContentIntent(stopPI)
                 .build();
         
         Log.d(TAG, "Notification built successfully");
         return notification;
-    }
-
-    private void launchAlarmActivity(String timerName) {
-        try {
-            Intent intent = new Intent(this, AlarmActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                    | Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-                    | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-            intent.putExtra("timerName", timerName);
-            startActivity(intent);
-            Log.d(TAG, "AlarmActivity launched");
-        } catch (Exception e) {
-            Log.e(TAG, "AlarmActivity launch FAILED", e);
-        }
     }
 
     private void startSound() {
