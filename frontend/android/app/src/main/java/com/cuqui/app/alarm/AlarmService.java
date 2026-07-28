@@ -44,7 +44,15 @@ public class AlarmService extends Service {
             if (vibrator != null && vibrator.hasVibrator()) {
                 long[] pattern = {0, 800, 400};
                 int[] amplitudes = {0, 255, 0};
-                vibrator.vibrate(VibrationEffect.createWaveform(pattern, amplitudes, -1));
+                VibrationEffect effect = VibrationEffect.createWaveform(pattern, amplitudes, -1);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    android.os.VibrationAttributes attrs = new android.os.VibrationAttributes.Builder()
+                            .setUsage(android.os.VibrationAttributes.USAGE_ALARM)
+                            .build();
+                    vibrator.vibrate(effect, attrs);
+                } else {
+                    vibrator.vibrate(effect);
+                }
                 vibrationHandler.postDelayed(this, 1200);
             }
         }
