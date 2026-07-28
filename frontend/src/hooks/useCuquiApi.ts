@@ -36,14 +36,6 @@ interface CuquiApiState {
   apiKeyStatus: ApiKeyStatus | null
   saveApiKey: (key: string) => Promise<void>
   checkApiKey: () => Promise<void>
-  modelStatus: ModelStatus
-}
-
-export interface ModelStatus {
-  status: 'pending' | 'downloading' | 'ready' | 'error'
-  current: number
-  total: number
-  description: string
 }
 
 export function useCuquiApi(): CuquiApiState {
@@ -265,12 +257,6 @@ export function useCuquiApi(): CuquiApiState {
   }, [])
 
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null)
-  const [modelStatus, setModelStatus] = useState<ModelStatus>({
-    status: 'pending',
-    current: 0,
-    total: 0,
-    description: '',
-  })
 
   const checkApiKey = useCallback(async () => {
     try {
@@ -306,39 +292,6 @@ export function useCuquiApi(): CuquiApiState {
     checkApiKey()
   }, [checkApiKey])
 
-  // Subscribe to model download progress via SSE
-  useEffect(() => {
-    const es = new EventSource(`${API_BASE}/model/progress`)
-
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        if (data.type === 'progress') {
-          setModelStatus({
-            status: 'downloading',
-            current: data.current,
-            total: data.total,
-            description: data.description || '',
-          })
-        } else if (data.type === 'ready') {
-          setModelStatus({ status: 'ready', current: 1, total: 1, description: '' })
-          es.close()
-        } else if (data.type === 'error') {
-          setModelStatus({ status: 'error', current: 0, total: 0, description: data.message || '' })
-          es.close()
-        }
-      } catch {
-        // keepalive comment, ignore
-      }
-    }
-
-    es.onerror = () => {
-      es.close()
-    }
-
-    return () => es.close()
-  }, [])
-
   return {
     timers,
     connectionStatus,
@@ -355,6 +308,5 @@ export function useCuquiApi(): CuquiApiState {
     apiKeyStatus,
     saveApiKey,
     checkApiKey,
-    modelStatus,
   }
 }
