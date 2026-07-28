@@ -5,9 +5,29 @@ import { useCapacitor } from './useCapacitor'
 import Alarm from '../plugins/Alarm'
 
 const STORAGE_KEY = 'cuqui_session_id'
+const DISMISSED_KEY = 'cuqui_dismissed_alarms'
 
 function getSessionId(): string {
   return localStorage.getItem(STORAGE_KEY) || ''
+}
+
+function getDismissedAlarms(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY)
+    return raw ? new Set(JSON.parse(raw)) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+function markAlarmDismissed(timerId: string) {
+  const dismissed = getDismissedAlarms()
+  dismissed.add(timerId)
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify([...dismissed]))
+}
+
+function isAlarmDismissed(timerId: string): boolean {
+  return getDismissedAlarms().has(timerId)
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
@@ -115,6 +135,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
       alarmIntervals.current.delete(timerId)
     }
     playingAlarms.current.delete(timerId)
+    markAlarmDismissed(timerId)
 
     if (isNative) {
       Alarm.stop({ timerId }).catch((e) => console.warn('Failed to stop native alarm:', e))
@@ -300,6 +321,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
         && timer.completed_at
         && now - new Date(timer.completed_at).getTime() < RECENT_MS
         && !playingAlarms.current.has(timer.id)
+        && !isAlarmDismissed(timer.id)
       ) {
         playAlarm(timer.id)
       }
@@ -315,7 +337,7 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
         for (const [id, timer] of Object.entries(timersRef.current)) {
           const prevTimer = prev[id]
           if (timer.status === 'completed' && (!prevTimer || prevTimer.status !== 'completed')) {
-            if (!playingAlarms.current.has(id)) {
+            if (!playingAlarms.current.has(id) && !isAlarmDismissed(id)) {
               playAlarm(id)
             }
           }
