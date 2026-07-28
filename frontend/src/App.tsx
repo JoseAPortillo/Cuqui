@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCuquiApi } from './hooks/useCuquiApi'
 import { useTimerNotifications } from './hooks/useTimerNotifications'
 import { TimerDashboard } from './components/TimerDashboard'
@@ -23,6 +23,19 @@ export default function App() {
   const [showApiKey, setShowApiKey] = useState(false)
 
   const { requestPermission, stopAlarm, playAlarm } = useTimerNotifications({ timers })
+
+  const mainRef = useRef<HTMLDivElement>(null)
+  const prevCountRef = useRef(0)
+
+  useEffect(() => {
+    const count = Object.keys(timers).length
+    if (count > prevCountRef.current && mainRef.current) {
+      requestAnimationFrame(() => {
+        mainRef.current?.scrollTo({ top: mainRef.current.scrollHeight, behavior: 'smooth' })
+      })
+    }
+    prevCountRef.current = count
+  }, [timers])
 
   useEffect(() => {
     requestPermission()
@@ -76,7 +89,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="app-main">
+      <main className="app-main" ref={mainRef}>
         <TimerDashboard
           timers={timers}
           onPause={pauseTimer}

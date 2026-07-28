@@ -122,4 +122,31 @@ public class AlarmPlugin extends Plugin {
             call.reject("Failed to cancel alarm: " + e.getMessage());
         }
     }
+
+    @PluginMethod
+    public void stop(PluginCall call) {
+        try {
+            String timerId = call.getString("timerId", "");
+            if (timerId.isEmpty()) {
+                call.reject("timerId is required");
+                return;
+            }
+
+            Intent intent = new Intent(getContext(), AlarmService.class);
+            intent.setAction(AlarmService.ACTION_STOP);
+            intent.putExtra(EXTRA_TIMER_ID, timerId);
+
+            getContext().startService(intent);
+
+            Log.d(TAG, "Stop service sent for timer " + timerId);
+
+            JSObject result = new JSObject();
+            result.put("success", true);
+            result.put("timerId", timerId);
+            call.resolve(result);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to stop alarm service", e);
+            call.reject("Failed to stop alarm: " + e.getMessage());
+        }
+    }
 }

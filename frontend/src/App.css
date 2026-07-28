@@ -25,7 +25,7 @@
   width: 280px;
   height: 280px;
   background: url('/cuqui_logo_mask.png') center / contain no-repeat;
-  opacity: 0.04;
+  opacity: 0.10;
   pointer-events: none;
   z-index: 0;
 }

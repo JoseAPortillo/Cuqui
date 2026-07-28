@@ -115,15 +115,22 @@ export function useTimerNotifications({ timers }: UseTimerNotificationsOptions) 
       alarmIntervals.current.delete(timerId)
     }
     playingAlarms.current.delete(timerId)
-  }, [])
+
+    if (isNative) {
+      Alarm.stop({ timerId }).catch((e) => console.warn('Failed to stop native alarm:', e))
+    }
+  }, [isNative])
 
   const stopAllAlarms = useCallback(() => {
-    for (const [, interval] of alarmIntervals.current) {
+    for (const [id, interval] of alarmIntervals.current) {
       clearInterval(interval)
+      if (isNative) {
+        Alarm.stop({ timerId: id }).catch((e) => console.warn('Failed to stop native alarm:', e))
+      }
     }
     alarmIntervals.current.clear()
     playingAlarms.current.clear()
-  }, [])
+  }, [isNative])
 
   const sendToSW = useCallback((type: string, payload?: unknown) => {
     const controller = navigator.serviceWorker?.controller
