@@ -26,6 +26,7 @@ from cuqui.domain.commands import (
     ResumeTimerCommand,
     SetTimerCommand,
 )
+from cuqui.domain.normalizer import normalize_es
 
 __all__ = [
     "ParseError",
@@ -287,6 +288,7 @@ class TimerParser:
         if lang not in self.LANGS:
             raise ValueError(f"Unsupported language: {lang!r}")
         self._patterns = self.LANGS[lang]
+        self._lang = lang
 
     # ── Public API ───────────────────────────────────────────────────────
 
@@ -302,6 +304,9 @@ class TimerParser:
                 message="No matching intent",
                 original_text=text,
             )
+
+        if self._lang == "es":
+            stripped = normalize_es(stripped)
 
         for regex, builder in self._patterns:
             match = regex.match(stripped)

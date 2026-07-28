@@ -653,7 +653,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.sync_service = SyncService()
     app.state.intent_parser = TimerParserAdapter(lang="es")
 
-    faster_whisper = FasterWhisperAdapter(model_size="small", language="es")
+    faster_whisper = FasterWhisperAdapter(model_size="medium", language="es")
     openai_asr = OpenAIWhisperAdapter(
         language="es",
     ) if os.getenv("OPENAI_API_KEY") else None
