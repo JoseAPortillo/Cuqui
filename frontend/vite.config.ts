@@ -20,6 +20,7 @@ export default defineConfig({
         theme_color: '#4fc3f7',
         background_color: '#0f0f23',
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
         orientation: 'any',
         start_url: '/',
         id: '/',
@@ -33,7 +34,7 @@ export default defineConfig({
             src: '/icons/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'maskable',
+            purpose: 'any maskable',
           },
         ],
         screenshots: [
