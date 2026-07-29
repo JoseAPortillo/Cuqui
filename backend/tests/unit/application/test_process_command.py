@@ -1,4 +1,4 @@
-"""Tests for process_command — match/case routing of all 8 intents.
+"""Tests for process_command — match/case routing of all 7 intents.
 
 Covers:
 - SET_TIMER: creates timer, returns Timer with pending status
@@ -8,7 +8,6 @@ Covers:
 - EXTEND_TIMER: extends remaining time
 - REDUCE_TIMER: reduces remaining time (clamped at 0)
 - RENAME_TIMER: renames timer
-- QUERY_TIMER: returns all timers dict or timer if name given
 - Unrecognized command type raises ValueError
 - Domain errors propagate
 """
@@ -21,7 +20,6 @@ from cuqui.domain.commands import (
     CancelTimerCommand,
     ExtendTimerCommand,
     PauseTimerCommand,
-    QueryTimerCommand,
     ReduceTimerCommand,
     RenameTimerCommand,
     ResumeTimerCommand,
@@ -228,26 +226,6 @@ class TestProcessCommandRenameTimer:
         result = self.process(self.manager, "s1", cmd)
         assert isinstance(result, Timer)
         assert result.name == "Rice"
-
-
-class TestProcessCommandQueryTimer:
-    """QUERY_TIMER SHALL return timer state(s)."""
-
-    def setup_method(self) -> None:
-        from cuqui.application.manage_timers import TimerManager
-        from cuqui.application.process_command import process_command
-
-        self.manager = TimerManager()
-        self.process = process_command
-
-    def test_query_all_timers_returns_dict(self) -> None:
-        """GIVEN two timers in session WHEN QUERY_TIMER THEN dict with both."""
-        self.manager.add_timer("s1", "Pasta", 300)
-        self.manager.add_timer("s1", "Rice", 600)
-        cmd = QueryTimerCommand()  # name is None → query all
-        result = self.process(self.manager, "s1", cmd)
-        assert isinstance(result, dict)
-        assert len(result) == 2
 
 
 class TestProcessCommandErrors:

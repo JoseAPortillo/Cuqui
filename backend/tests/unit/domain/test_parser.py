@@ -1,7 +1,7 @@
 """Tests for rule-based natural language timer parser (EN + ES).
 
 Covers:
-- All 8 intent patterns for English and Spanish
+- All 7 intent patterns for English and Spanish
 - First-match order precedence
 - No-match → ParseError
 - Empty input, partial duration, ambiguous intent
@@ -16,7 +16,6 @@ from cuqui.domain.commands import (
     CancelTimerCommand,
     ExtendTimerCommand,
     PauseTimerCommand,
-    QueryTimerCommand,
     ReduceTimerCommand,
     RenameTimerCommand,
     ResumeTimerCommand,
@@ -114,11 +113,6 @@ class TestTimerParserEnglish:
         assert isinstance(result, RenameTimerCommand)
         assert result.name == "rice"
 
-    def test_query_how_much_time_left(self) -> None:
-        """GIVEN "how much time left" → QUERY_TIMER."""
-        result = self.parser.parse("how much time left")
-        assert isinstance(result, QueryTimerCommand)
-
     def test_partial_duration_returns_parse_error(self) -> None:
         """GIVEN "set timer for" (no duration) → ParseError."""
         result = self.parser.parse("set timer for")
@@ -180,22 +174,6 @@ class TestTimerParserEnglishEdgeCases:
         assert isinstance(result, RenameTimerCommand)
         assert result.name == "rice"
 
-    def test_query_how_long(self) -> None:
-        result = self.parser.parse("how long until done")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_whats_status(self) -> None:
-        result = self.parser.parse("what's the status")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_what_is_status(self) -> None:
-        result = self.parser.parse("what is the status")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_when_will_it_finish(self) -> None:
-        result = self.parser.parse("when will it finish")
-        assert isinstance(result, QueryTimerCommand)
-
     def test_pause_timer_with_name(self) -> None:
         result = self.parser.parse("pause the rice timer")
         assert isinstance(result, PauseTimerCommand)
@@ -235,14 +213,6 @@ class TestTimerParserEnglishEdgeCases:
         """GIVEN "cancel pasta" (no "timer") → ParseError."""
         result = self.parser.parse("cancel pasta")
         assert isinstance(result, ParseError)
-
-    def test_query_time_remaining(self) -> None:
-        result = self.parser.parse("time remaining")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_when_is_pasta_done(self) -> None:
-        result = self.parser.parse("when is the pasta done")
-        assert isinstance(result, QueryTimerCommand)
 
     # ── ASR robustness: preposition-optional name capture ──────────────────
 
@@ -427,46 +397,6 @@ class TestTimerParserSpanish:
         result = self.parser.parse("renombrar a arroz")
         assert isinstance(result, RenameTimerCommand)
         assert result.name == "arroz"
-
-    def test_query_cuanto_tiempo_falta(self) -> None:
-        """GIVEN "cuánto tiempo falta" → QUERY_TIMER."""
-        result = self.parser.parse("cuánto tiempo falta")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_cuanto_queda(self) -> None:
-        """GIVEN "cuánto queda" → QUERY_TIMER."""
-        result = self.parser.parse("cuánto queda")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_tiempo_restante(self) -> None:
-        """GIVEN "tiempo restante" → QUERY_TIMER."""
-        result = self.parser.parse("tiempo restante")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_tiempo_que_queda(self) -> None:
-        """GIVEN "tiempo que queda" → QUERY_TIMER."""
-        result = self.parser.parse("tiempo que queda")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_cuando_termina(self) -> None:
-        """GIVEN "cuándo termina" → QUERY_TIMER."""
-        result = self.parser.parse("cuándo termina")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_cuando_finaliza(self) -> None:
-        """GIVEN "cuándo finaliza" → QUERY_TIMER."""
-        result = self.parser.parse("cuándo finaliza")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_que_tiempo_queda(self) -> None:
-        """GIVEN "qué tiempo queda" → QUERY_TIMER."""
-        result = self.parser.parse("qué tiempo queda")
-        assert isinstance(result, QueryTimerCommand)
-
-    def test_query_que_resta(self) -> None:
-        """GIVEN "qué resta" → QUERY_TIMER."""
-        result = self.parser.parse("qué resta")
-        assert isinstance(result, QueryTimerCommand)
 
     def test_partial_duration_returns_parse_error(self) -> None:
         """GIVEN "configurar temporizador para" (no duration) → ParseError."""

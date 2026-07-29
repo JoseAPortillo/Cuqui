@@ -1,8 +1,8 @@
 """Tests for Intent enum and CuquiCommand frozen dataclasses.
 
 Covers:
-- Intent enum membership and values (8 members, SYNC_FINISH_TIME deferred)
-- Per-intent command validation (all 8 commands)
+- Intent enum membership and values (7 members, SYNC_FINISH_TIME deferred)
+- Per-intent command validation (all 7 commands)
 - CuquiCommand type alias
 - Clean imports (no FastAPI, async framework packages, or Pydantic)
 """
@@ -20,7 +20,6 @@ from cuqui.domain.commands import (
     ExtendTimerCommand,
     Intent,
     PauseTimerCommand,
-    QueryTimerCommand,
     ReduceTimerCommand,
     RenameTimerCommand,
     ResumeTimerCommand,
@@ -55,18 +54,15 @@ class TestIntentMembership:
     def test_rename_timer_is_member(self) -> None:
         assert Intent.RENAME_TIMER in Intent
 
-    def test_query_timer_is_member(self) -> None:
-        assert Intent.QUERY_TIMER in Intent
-
     def test_reject_sync_finish_time(self) -> None:
         """GIVEN an Intent enum WHEN checking for SYNC_FINISH_TIME
         THEN it SHALL NOT be a member."""
         with pytest.raises(AttributeError):
             Intent.SYNC_FINISH_TIME  # type: ignore[attr-defined]
 
-    def test_exactly_eight_members(self) -> None:
-        """The enum SHALL have exactly 8 members (SYNC_FINISH_TIME deferred)."""
-        assert len(Intent) == 8
+    def test_exactly_seven_members(self) -> None:
+        """The enum SHALL have exactly 7 members (SYNC_FINISH_TIME deferred)."""
+        assert len(Intent) == 7
 
 
 class TestIntentValues:
@@ -93,8 +89,6 @@ class TestIntentValues:
     def test_rename_timer_value(self) -> None:
         assert Intent.RENAME_TIMER == 7
 
-    def test_query_timer_value(self) -> None:
-        assert Intent.QUERY_TIMER == 8
 
 
 # ── SET_TIMER Command ──────────────────────────────────────────────────────────
@@ -274,37 +268,18 @@ class TestRenameTimerCommand:
             RenameTimerCommand(name="a" * 51)
 
 
-# ── QUERY_TIMER Command ───────────────────────────────────────────────────────
-
-
-class TestQueryTimerCommand:
-    """QueryTimerCommand SHALL accept optional name."""
-
-    def test_without_name(self) -> None:
-        cmd = QueryTimerCommand()
-        assert cmd.name is None
-
-    def test_with_name(self) -> None:
-        cmd = QueryTimerCommand(name="Pasta")
-        assert cmd.name == "Pasta"
-
-    def test_name_too_long(self) -> None:
-        with pytest.raises(ValueError, match="name too long"):
-            QueryTimerCommand(name="a" * 51)
-
-
 # ── CuquiCommand Type Alias ────────────────────────────────────────────────────
 
 
 class TestCuquiCommandTypeAlias:
-    """CuquiCommand SHALL be a Union type alias covering all 8 command types."""
+    """CuquiCommand SHALL be a Union type alias covering all 7 command types."""
 
     def test_type_alias_is_union(self) -> None:
         """CuquiCommand SHALL be a Union type."""
         assert typing.get_origin(CuquiCommand) is typing.Union
 
     def test_union_contains_all_commands(self) -> None:
-        """The Union SHALL include all 8 command types."""
+        """The Union SHALL include all 7 command types."""
         args = typing.get_args(CuquiCommand)
         assert SetTimerCommand in args
         assert CancelTimerCommand in args
@@ -313,11 +288,10 @@ class TestCuquiCommandTypeAlias:
         assert ExtendTimerCommand in args
         assert ReduceTimerCommand in args
         assert RenameTimerCommand in args
-        assert QueryTimerCommand in args
 
-    def test_union_exactly_eight_types(self) -> None:
-        """There SHALL be exactly 8 types in CuquiCommand."""
-        assert len(typing.get_args(CuquiCommand)) == 8
+    def test_union_exactly_seven_types(self) -> None:
+        """There SHALL be exactly 7 types in CuquiCommand."""
+        assert len(typing.get_args(CuquiCommand)) == 7
 
     def test_isinstance_narrowing_set_timer(self) -> None:
         """GIVEN a SetTimerCommand WHEN isinstance THEN it SHALL match SetTimerCommand."""
