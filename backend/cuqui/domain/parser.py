@@ -20,7 +20,6 @@ from cuqui.domain.commands import (
     CuquiCommand,
     ExtendTimerCommand,
     PauseTimerCommand,
-    QueryTimerCommand,
     ReduceTimerCommand,
     RenameTimerCommand,
     ResumeTimerCommand,
@@ -130,7 +129,6 @@ class TimerParser:
     #. ``EXTEND_TIMER``       CANCEL — PAUSE is checked first.
     #. ``REDUCE_TIMER``
     #. ``RENAME_TIMER``
-    #. ``QUERY_TIMER``
     """
 
     # ── English patterns ──────────────────────────────────────────────────
@@ -177,16 +175,6 @@ class TimerParser:
 
     _RENAME_TIMER_EN = re.compile(
         r"rename\s+(?:timer\s+)?(?:to\s+)?(.+)",
-        re.IGNORECASE,
-    )
-
-    _QUERY_TIMER_EN = re.compile(
-        r"(?:"
-        r"how\s+(?:much|long)|"
-        r"time\s+(?:left|remaining)|"
-        r"when\s+(?:is|will)|"
-        r"what(?:'?s|\s+is)\s+(?:the\s+)?(?:status|time)"
-        r")",
         re.IGNORECASE,
     )
 
@@ -269,16 +257,6 @@ class TimerParser:
 
     _RENAME_TIMER_ES = re.compile(
         r"renombr(?:a|á|ar)\s+(?:temporizador\s+)?(?:a\s+)?(.+)",
-        re.IGNORECASE,
-    )
-
-    _QUERY_TIMER_ES = re.compile(
-        r"(?:"
-        r"cuánto\s+(?:tiempo\s+)?(?:falta|queda)|"
-        r"tiempo\s+(?:restante|que\s+queda)|"
-        r"cuándo\s+(?:termina|finaliza)|"
-        r"qué\s+(?:tiempo\s+)?(?:queda|resta)"
-        r")",
         re.IGNORECASE,
     )
 
@@ -390,11 +368,6 @@ class TimerParser:
                 break
         return RenameTimerCommand(name=new_name, target_name=target_name)
 
-    @staticmethod
-    def _build_query_timer(match: re.Match) -> CuquiCommand:
-        return QueryTimerCommand()
-
-
 # ── Language pattern registry ──────────────────────────────────────────────────
 
 TimerParser.LANGS: dict[str, list[tuple[re.Pattern, Callable[..., CuquiCommand]]]] = {
@@ -406,7 +379,6 @@ TimerParser.LANGS: dict[str, list[tuple[re.Pattern, Callable[..., CuquiCommand]]
         (TimerParser._EXTEND_TIMER_EN, TimerParser._build_extend_timer),
         (TimerParser._REDUCE_TIMER_EN, TimerParser._build_reduce_timer),
         (TimerParser._RENAME_TIMER_EN, TimerParser._build_rename_timer),
-        (TimerParser._QUERY_TIMER_EN, TimerParser._build_query_timer),
     ],
     "es": [
         (TimerParser._SET_TIMER_ES, TimerParser._build_set_timer),
@@ -422,6 +394,5 @@ TimerParser.LANGS: dict[str, list[tuple[re.Pattern, Callable[..., CuquiCommand]]
         (TimerParser._EXTEND_TIMER_ES, TimerParser._build_extend_timer),
         (TimerParser._REDUCE_TIMER_ES, TimerParser._build_reduce_timer),
         (TimerParser._RENAME_TIMER_ES, TimerParser._build_rename_timer),
-        (TimerParser._QUERY_TIMER_ES, TimerParser._build_query_timer),
     ],
 }

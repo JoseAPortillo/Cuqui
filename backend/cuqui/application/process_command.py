@@ -1,7 +1,7 @@
-"""Command routing — match/case dispatch of all 8 intents.
+"""Command routing — match/case dispatch of all 7 intents.
 
 ``process_command()`` receives a concrete ``CuquiCommand`` (one of the
-8 intent dataclasses), resolves the target timer by name, and delegates
+7 intent dataclasses), resolves the target timer by name, and delegates
 to the corresponding ``TimerManager`` method.
 
 Domain errors (e.g. invalid state transitions) propagate to the caller.
@@ -15,7 +15,6 @@ from cuqui.domain.commands import (
     CuquiCommand,
     ExtendTimerCommand,
     PauseTimerCommand,
-    QueryTimerCommand,
     ReduceTimerCommand,
     RenameTimerCommand,
     ResumeTimerCommand,
@@ -69,7 +68,6 @@ def process_command(
         - ``SET_TIMER`` → the newly created ``Timer``
         - ``CANCEL_TIMER`` → ``None``
         - ``PAUSE`` / ``RESUME`` / ``EXTEND`` / ``REDUCE`` / ``RENAME`` → updated ``Timer``
-        - ``QUERY_TIMER`` → ``dict`` of all timers in the session
 
     Raises
     ------
@@ -116,13 +114,6 @@ def process_command(
             # Otherwise fall back to the last timer.
             timer_id = _resolve_timer_id(manager, session_id, target)
             return manager.rename_timer(session_id, timer_id, n)
-
-        case QueryTimerCommand(name=n):
-            if n is not None:
-                timer_id = _resolve_timer_id(manager, session_id, n)
-                timer = manager.get_timer(session_id, timer_id)
-                return {timer.id: timer} if timer is not None else {}
-            return manager.get_all_timers(session_id)
 
         case _:
             raise ValueError(f"Unrecognised command type: {type(command).__name__}")

@@ -1,7 +1,7 @@
 """Command schema — Intent enum and CuquiCommand frozen dataclasses.
 
 Provides:
-    Intent:             IntEnum of 8 voice intents (SYNC_FINISH_TIME deferred).
+    Intent:             IntEnum of 7 voice intents (SYNC_FINISH_TIME deferred).
     {Verb}TimerCommand: Per-intent frozen dataclass with ``__post_init__`` validation.
     CuquiCommand:       ``Union`` type alias for type narrowing.
 
@@ -20,7 +20,6 @@ __all__ = [
     "ExtendTimerCommand",
     "Intent",
     "PauseTimerCommand",
-    "QueryTimerCommand",
     "ReduceTimerCommand",
     "RenameTimerCommand",
     "ResumeTimerCommand",
@@ -44,7 +43,6 @@ class Intent(enum.IntEnum):
     EXTEND_TIMER = 5
     REDUCE_TIMER = 6
     RENAME_TIMER = 7
-    QUERY_TIMER = 8
 
 
 # ── Validation helpers ─────────────────────────────────────────────────────────
@@ -156,16 +154,6 @@ class RenameTimerCommand:
         _validate_name(self.name)
 
 
-@dataclass(frozen=True)
-class QueryTimerCommand:
-    """Query the status of a timer. Without a name, returns all / last."""
-
-    name: str | None = None
-
-    def __post_init__(self) -> None:
-        _validate_name(self.name)
-
-
 # ── Type Alias ─────────────────────────────────────────────────────────────────
 
 
@@ -177,9 +165,8 @@ CuquiCommand = Union[
     ExtendTimerCommand,
     ReduceTimerCommand,
     RenameTimerCommand,
-    QueryTimerCommand,
 ]
-"""A voice command that can represent any of the 8 intents.
+"""A voice command that can represent any of the 7 intents.
 
 Usage::
 
