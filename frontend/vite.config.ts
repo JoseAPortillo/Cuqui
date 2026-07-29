@@ -37,19 +37,7 @@ export default defineConfig({
             purpose: 'any maskable',
           },
         ],
-        screenshots: [
-          {
-            src: '/screenshots/desktop.png',
-            sizes: '1280x800',
-            type: 'image/png',
-            form_factor: 'wide',
-          },
-          {
-            src: '/screenshots/mobile.png',
-            sizes: '390x844',
-            type: 'image/png',
-          },
-        ],
+
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
