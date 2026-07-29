@@ -6,9 +6,12 @@ Cuqui is a voice-controlled cooking assistant that manages multiple named timers
 
 The system supports creating, pausing, resuming, extending, reducing, renaming, and checking timers using voice or text commands. State synchronization happens via WebSockets, and background notifications work through the Push API + Service Worker even when the screen is off.
 
-## Cuqui -- Link
-For testing the app you can use this link:
-[https://cuqui-app.duckdns.org/]
+## Cuqui -- Access
+
+Cuqui is a **Progressive Web App (PWA)**. You can use it from your desktop browser or **install it on your mobile device** just like a native app.
+
+- **Web**: [https://cuqui-app.duckdns.org/](https://cuqui-app.duckdns.org/)
+- **Mobile**: open the URL from Chrome/Edge on your phone → tap *"Install"* / *"Add to Home Screen"*
 
 ## TFM's Documents
 - The slice document for the TFM project is available at the following link: [https://docs.google.com/presentation/d/1mqL9VpTbUUpLkwpgoKqmWxSIKEmeiaz6zP-Z9wokacE/edit?usp=drive_link]
