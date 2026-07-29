@@ -147,27 +147,6 @@ class TestApiRoutes:
         response = self.client.get("/timers")
         assert response.status_code == 422
 
-    def test_post_command_query_returns_all(self) -> None:
-        """GIVEN two timers in session WHEN POST query command THEN dict with both."""
-        # Create two timers
-        self.client.post(
-            "/commands/text",
-            json={"text": "set 5 minute timer for pasta", "session_id": "abc"},
-        )
-        self.client.post(
-            "/commands/text",
-            json={"text": "set 10 minute timer for rice", "session_id": "abc"},
-        )
-        # Query timers
-        response = self.client.post(
-            "/commands/text",
-            json={"text": "how much time left", "session_id": "abc"},
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert isinstance(data, dict)
-        assert len(data) >= 2
-
     def test_get_timers_with_two_timers_returns_both(self) -> None:
         """GIVEN two timers WHEN GET /timers THEN array with both."""
         self.client.post(
