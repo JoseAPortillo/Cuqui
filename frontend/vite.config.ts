@@ -22,6 +22,7 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'any',
         start_url: '/',
+        id: '/',
         icons: [
           {
             src: '/icons/icon-192.png',
@@ -31,6 +32,20 @@ export default defineConfig({
           {
             src: '/icons/icon-512.png',
             sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+        screenshots: [
+          {
+            src: '/screenshots/desktop.png',
+            sizes: '1280x800',
+            type: 'image/png',
+            form_factor: 'wide',
+          },
+          {
+            src: '/screenshots/mobile.png',
+            sizes: '390x844',
             type: 'image/png',
           },
         ],
