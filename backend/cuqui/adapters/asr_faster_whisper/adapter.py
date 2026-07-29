@@ -198,29 +198,25 @@ class FasterWhisperAdapter:
         segment text.
         """
         model = await self._ensure_model()
-        loop = asyncio.get_running_loop()
 
         suffix = _ext_from_content_type(content_type)
         log.info("faster-whisper transcribe: %d bytes, suffix=%s, content_type=%r", len(audio_bytes), suffix, content_type)
 
-        def _run() -> str:
-            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
-                f.write(audio_bytes)
-                tmp = f.name
-            try:
-                segments, info = model.transcribe(
-                    tmp,
-                    beam_size=8,
-                    language=self._language,
-                    condition_on_previous_text=False,
-                )
-                text = " ".join(seg.text.strip() for seg in segments)
-                log.debug(
-                    "faster-whisper transcribed %d segments (duration=%.1fs)",
-                    info.duration if info else 0,
-                )
-                return text.strip()
-            finally:
-                Path(tmp).unlink(missing_ok=True)
-
-        return await loop.run_in_executor(None, _run)
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+            f.write(audio_bytes)
+            tmp = f.name
+        try:
+            segments, info = model.transcribe(
+                tmp,
+                beam_size=5,
+                language=self._language,
+                condition_on_previous_text=False,
+            )
+            text = " ".join(seg.text.strip() for seg in segments)
+            log.debug(
+                "faster-whisper transcribed %d segments (duration=%.1fs)",
+                info.duration if info else 0,
+            )
+            return text.strip()
+        finally:
+            Path(tmp).unlink(missing_ok=True)
