@@ -1,4 +1,30 @@
-self.__WB_MANIFEST
+const CACHE = 'cuqui-v1'
+const PRECACHE_URLS = (self.__WB_MANIFEST || []).map((entry) => entry.url)
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE_URLS)),
+  )
+  self.skipWaiting()
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((keys) =>
+        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+      ),
+      warmAudioPipeline(),
+    ]),
+  )
+})
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request)),
+  )
+})
 
 const RUNNING_TIMERS = new Map()
 
@@ -58,25 +84,13 @@ async function playAlarmBeeps() {
   }
 }
 
-self.addEventListener('install', () => {
-  self.skipWaiting()
-})
-
 async function warmAudioPipeline() {
   try {
-    const ctx = await ensureAudioCtx()
-    ctx.close()
+    ;(await ensureAudioCtx()).close()
   } catch {
     /* warm-up failed — alarm will try fresh AudioContext per push */
   }
 }
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(Promise.all([
-    self.clients.claim(),
-    warmAudioPipeline(),
-  ]))
-})
 
 self.addEventListener('push', (event) => {
   let data = { title: '\u23F0 \u00a1Tiempo cumplido!', body: '', tag: 'cuqui-push', data: {} }
