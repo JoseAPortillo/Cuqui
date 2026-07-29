@@ -71,9 +71,9 @@ process_command SHALL accept a CuquiCommand and session_id. SHALL route by inten
 - WHEN process_command(CANCEL_TIMER targeting t1, "s1") is called
 - THEN get_timer("t1") SHALL return None
 
-#### Scenario: Intent-to-method mapping covers all 8 intents
+#### Scenario: Intent-to-method mapping covers all 7 intents
 
-- GIVEN all 8 intents from SET_TIMER to QUERY_TIMER
+- GIVEN all 7 intents from SET_TIMER to RENAME_TIMER
 - WHEN process_command is called for each
 - THEN each SHALL map to exactly one TimerManager method
 - AND unsupported intents SHALL return an error

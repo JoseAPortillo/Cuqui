@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
 
 const COMMANDS = [
-  { action: 'Crear temporizador', verbs: 'poner / crear / configurar / setear', example: '"poner 10 minutos para la pasta"' },
+  { action: 'Crear temporizador', verbs: '—', example: '"10 minutos para la pasta"' },
   { action: 'Pausar', verbs: 'pausar', example: '"pausar el temporizador"' },
   { action: 'Reanudar', verbs: 'reanudar', example: '"reanudar el temporizador"' },
   { action: 'Cancelar', verbs: 'cancelar', example: '"cancelar el temporizador"' },
   { action: 'Agregar tiempo', verbs: 'agregar / añadir / extender', example: '"agregar 5 minutos a la pasta"' },
   { action: 'Quitar tiempo', verbs: 'quitar / reducir / restar', example: '"quitar 2 minutos a la pasta"' },
   { action: 'Renombrar', verbs: 'renombrar', example: '"renombrar temporizador a papas"' },
-  { action: 'Consultar tiempo', verbs: '—', example: '"cuánto tiempo queda"' },
 ]
 
 export function CommandsHelp() {

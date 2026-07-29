@@ -8,7 +8,7 @@ Rule-based parser that transforms natural language text into typed `Command` obj
 
 ### Requirement: Ordered Pattern Matching
 
-The parser SHALL evaluate intents in a defined order and return the first matching `Command`. Pattern order: SET_TIMER, CANCEL_TIMER, PAUSE_TIMER, RESUME_TIMER, EXTEND_TIMER, REDUCE_TIMER, RENAME_TIMER, QUERY_TIMER.
+The parser SHALL evaluate intents in a defined order and return the first matching `Command`. Pattern order: SET_TIMER, PAUSE_TIMER, CANCEL_TIMER, RESUME_TIMER, EXTEND_TIMER, REDUCE_TIMER, RENAME_TIMER.
 
 #### Scenario: First match wins
 
@@ -55,12 +55,6 @@ Each intent SHALL match its expected utterance patterns. The parser MUST handle 
 - GIVEN "rename timer to rice"
 - WHEN parsed
 - THEN result SHALL be `RENAME_TIMER` with name="rice"
-
-#### Scenario: QUERY_TIMER
-
-- GIVEN "how much time left", "time remaining", "when is the pasta done"
-- WHEN parsed
-- THEN all SHALL return `QUERY_TIMER` (name optional)
 
 ### Requirement: Ambiguity and Edge Cases
 

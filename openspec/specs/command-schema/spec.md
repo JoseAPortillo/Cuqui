@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Defines the `Intent` enum and `Command` Pydantic model with discriminated union per intent. Provides type-safe parameter validation for all 8 MVP voice intents.
+Defines the `Intent` enum and `Command` Pydantic model with discriminated union per intent. Provides type-safe parameter validation for all 7 MVP voice intents.
 
 ## Requirements
 
 ### Requirement: Intent Enum
 
-The system SHALL define an `Intent` enum with exactly these 8 members: `SET_TIMER`, `CANCEL_TIMER`, `PAUSE_TIMER`, `RESUME_TIMER`, `EXTEND_TIMER`, `REDUCE_TIMER`, `RENAME_TIMER`, `QUERY_TIMER`. `SYNC_FINISH_TIME` SHALL be deferred.
+The system SHALL define an `Intent` enum with exactly these 7 members: `SET_TIMER`, `CANCEL_TIMER`, `PAUSE_TIMER`, `RESUME_TIMER`, `EXTEND_TIMER`, `REDUCE_TIMER`, `RENAME_TIMER`. `SYNC_FINISH_TIME` SHALL be deferred.
 
 #### Scenario: Recognize valid intent
 
@@ -31,12 +31,6 @@ The `Command` model SHALL be a Pydantic discriminated union keyed by `intent`. E
 - GIVEN intent `SET_TIMER`, duration 300, unit "seconds", name "Pasta"
 - WHEN building a Command
 - THEN the model SHALL validate all fields and disallow extras
-
-#### Scenario: Build QUERY_TIMER Command
-
-- GIVEN intent `QUERY_TIMER`, name "Pasta" (no duration)
-- WHEN building a Command
-- THEN duration SHALL be absent and validation SHALL pass
 
 ### Requirement: Per-Intent Parameter Validation
 

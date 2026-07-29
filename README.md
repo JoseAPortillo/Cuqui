@@ -157,9 +157,9 @@ cuqui/
 
 #### Spanish command voices
   
-- Create named timers: _"Poner 10 minutos a pasta"_
-- Add time: _"Añadir 5 minutos a pollo"_
-- Reduce time: _"reducir a arroz 2 minutos"_
+- Create named timers: _"10 minutos para la pasta"_
+- Add time: _"agregar 5 minutos al pollo"_
+- Reduce time: _"quitar 2 minutos al arroz"_
 - Pause/resume: _"pausar el pescado"_
 - Cancel: _"cancelar las patatas"_
 - Rename: _"renombrar pasta a spaghetti"_

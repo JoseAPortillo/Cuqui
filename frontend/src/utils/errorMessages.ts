@@ -44,7 +44,7 @@ const ERROR_MAP: Record<ErrorCode, Omit<FriendlyError, 'code'>> = {
   },
   parse_error: {
     title: 'Te escuché pero no entendí el comando',
-    message: 'Prueba decir algo como "poner 10 minutos para la pasta" o "pausa el temporizador".',
+    message: 'Prueba decir algo como "10 minutos para la pasta" o "pausa el temporizador".',
     kind: 'info',
   },
   domain_error: {

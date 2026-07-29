@@ -77,7 +77,7 @@ def create_timer(name: str, duration_secs: int) -> Timer: ...
 class Intent(enum.IntEnum):
     SET_TIMER = 1; CANCEL_TIMER = 2; PAUSE_TIMER = 3
     RESUME_TIMER = 4; EXTEND_TIMER = 5; REDUCE_TIMER = 6
-    RENAME_TIMER = 7; QUERY_TIMER = 8
+    RENAME_TIMER = 7
 
 @dataclass(frozen=True)
 class SetTimerCommand:
@@ -90,12 +90,12 @@ class SetTimerCommand:
         _validate_unit(self.unit)
         _validate_name(self.name)
 
-# ... 7 more per-intent commands ...
+# ... 6 more per-intent commands ...
 
 CuquiCommand = Union[
     SetTimerCommand, CancelTimerCommand, PauseTimerCommand,
     ResumeTimerCommand, ExtendTimerCommand, ReduceTimerCommand,
-    RenameTimerCommand, QueryTimerCommand,
+    RenameTimerCommand,
 ]
 
 # parser.py — pure stdlib

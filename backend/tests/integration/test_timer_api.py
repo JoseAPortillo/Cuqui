@@ -142,28 +142,6 @@ class TestCommandTimerCycle:
         assert resp.status_code == 200
         assert resp.json() == []
 
-    def test_query_command_returns_all_timers(self, client: TestClient) -> None:
-        """GIVEN timers exist WHEN POST query THEN dict with all timers."""
-        client.post(
-            "/commands/text",
-            json={"text": "poner temporizador de 5 minutos para pasta", "session_id": self.SESSION},
-        )
-        client.post(
-            "/commands/text",
-            json={"text": "poner temporizador de 3 minutos para arroz", "session_id": self.SESSION},
-        )
-
-        # Query via POST using Spanish "cuánto tiempo falta"
-        resp = client.post(
-            "/commands/text",
-            json={"text": "cuánto tiempo falta", "session_id": self.SESSION},
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert isinstance(data, dict)
-        assert len(data) == 2
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # 4.3 Integration: WS connect + command POST → broadcast received
 # ═══════════════════════════════════════════════════════════════════════════════
