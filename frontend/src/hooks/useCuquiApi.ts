@@ -17,8 +17,10 @@ function getSessionId(): string {
   return id
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://188.245.179.45:8000'
-const WS_BASE = import.meta.env.VITE_WS_BASE ?? 'ws://188.245.179.45:8000'
+const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+const WS_BASE = import.meta.env.VITE_WS_BASE ?? (API_BASE
+  ? API_BASE.replace(/^http/, 'ws')
+  : `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`)
 
 interface CuquiApiState {
   timers: Record<string, Timer>
