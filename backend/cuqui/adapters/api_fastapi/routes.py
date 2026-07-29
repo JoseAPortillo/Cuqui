@@ -751,7 +751,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.sync_service = SyncService()
     app.state.intent_parser = TimerParserAdapter(lang="es")
 
-    whisper_model_size = os.getenv("CUQUI_WHISPER_MODEL", "small")
+    whisper_model_size = os.getenv("CUQUI_WHISPER_MODEL", "base")
     faster_whisper = FasterWhisperAdapter(model_size=whisper_model_size, language="es")
     app.state.faster_whisper = faster_whisper
 
