@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="100%" stop-color="#0f0f23"/>
+    </linearGradient>
+    <linearGradient id="btn" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4fc3f7"/>
+      <stop offset="100%" stop-color="#29b6f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#bg)"/>
+  <!-- Status bar -->
+  <rect x="0" y="0" width="1080" height="80" fill="#0a0a1a"/>
+  <text x="50" y="50" font-family="sans-serif" font-size="28" fill="#fff" font-weight="bold">9:41</text>
+  <rect x="900" y="30" width="70" height="10" rx="5" fill="#fff" opacity="0.3"/>
+  <circle cx="1000" cy="35" r="6" fill="#fff" opacity="0.3"/>
+  <rect x="930" y="30" width="25" height="10" rx="5" fill="#4fc3f7"/>
+  <!-- Header -->
+  <text x="70" y="160" font-family="sans-serif" font-size="52" font-weight="bold" fill="#4fc3f7">Cuqui</text>
+  <text x="70" y="210" font-family="sans-serif" font-size="24" fill="#666">Asistente de cocina inteligente</text>
+  <!-- Help button -->
+  <rect x="850" y="130" width="160" height="44" rx="22" fill="#1f1f4e" stroke="#2a2a5e" stroke-width="1"/>
+  <text x="930" y="157" font-family="sans-serif" font-size="18" fill="#888" text-anchor="middle">Comandos</text>
+  <!-- Timer card 1 -->
+  <rect x="70" y="280" width="940" height="220" rx="20" fill="#14143a" stroke="#2a2a5e" stroke-width="1"/>
+  <rect x="70" y="280" width="940" height="8" rx="4" fill="#4fc3f7"/>
+  <text x="130" y="340" font-family="sans-serif" font-size="64" font-weight="bold" fill="#4fc3f7">12:30</text>
+  <text x="130" y="380" font-family="sans-serif" font-size="24" fill="#aaa">Pasta</text>
+  <rect x="130" y="410" width="400" height="6" rx="3" fill="#2a2a5e"/>
+  <rect x="130" y="410" width="280" height="6" rx="3" fill="#4fc3f7" opacity="0.6"/>
+  <!-- Timer controls -->
+  <rect x="720" y="310" width="60" height="60" rx="30" fill="#1f1f4e" stroke="#2a2a5e" stroke-width="1"/>
+  <rect x="800" y="310" width="60" height="60" rx="30" fill="#1f1f4e" stroke="#2a2a5e" stroke-width="1"/>
+  <rect x="880" y="310" width="60" height="60" rx="30" fill="#d32f2f" opacity="0.8"/>
+  <!-- Timer card 2 -->
+  <rect x="70" y="540" width="940" height="220" rx="20" fill="#14143a" stroke="#2a2a5e" stroke-width="1"/>
+  <rect x="70" y="540" width="940" height="8" rx="4" fill="#ff7043"/>
+  <text x="130" y="600" font-family="sans-serif" font-size="64" font-weight="bold" fill="#ff7043">08:00</text>
+  <text x="130" y="640" font-family="sans-serif" font-size="24" fill="#aaa">Pollo al horno</text>
+  <rect x="130" y="670" width="400" height="6" rx="3" fill="#2a2a5e"/>
+  <rect x="130" y="670" width="160" height="6" rx="3" fill="#ff7043" opacity="0.6"/>
+  <rect x="720" y="570" width="60" height="60" rx="30" fill="#1f1f4e" stroke="#2a2a5e" stroke-width="1"/>
+  <rect x="800" y="570" width="60" height="60" rx="30" fill="#1f1f4e" stroke="#2a2a5e" stroke-width="1"/>
+  <rect x="880" y="570" width="60" height="60" rx="30" fill="#d32f2f" opacity="0.8"/>
+  <!-- Empty state hint -->
+  <rect x="70" y="820" width="940" height="100" rx="16" fill="#1f1f4e" stroke="#2a2a5e" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="540" y="865" font-family="sans-serif" font-size="22" fill="#555" text-anchor="middle">Tocá el micrófono y decí un comando</text>
+  <text x="540" y="898" font-family="sans-serif" font-size="16" fill="#444" text-anchor="middle">Ej: "timer de 10 minutos para la pasta"</text>
+  <!-- Voice button -->
+  <circle cx="540" cy="1700" r="90" fill="url(#btn)" opacity="0.15"/>
+  <circle cx="540" cy="1700" r="65" fill="url(#btn)"/>
+  <circle cx="540" cy="1700" r="50" fill="#0f0f23"/>
+  <circle cx="540" cy="1700" r="35" fill="url(#btn)"/>
+  <!-- Navigation bar -->
+  <rect x="0" y="1840" width="1080" height="80" fill="#0a0a1a"/>
+  <rect x="440" y="1865" width="200" height="8" rx="4" fill="#fff" opacity="0.3"/>
+</svg>

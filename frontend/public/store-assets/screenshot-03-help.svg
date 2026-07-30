@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="100%" stop-color="#0f0f23"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#bg)"/>
+  <!-- Status bar -->
+  <rect x="0" y="0" width="1080" height="80" fill="#0a0a1a"/>
+  <text x="50" y="50" font-family="sans-serif" font-size="28" fill="#fff" font-weight="bold">9:41</text>
+  <!-- Header -->
+  <text x="70" y="160" font-family="sans-serif" font-size="52" font-weight="bold" fill="#4fc3f7">Cuqui</text>
+  <!-- Help panel -->
+  <rect x="70" y="200" width="940" height="1240" rx="20" fill="#14143a" stroke="#2a2a5e" stroke-width="1"/>
+  <rect x="70" y="200" width="940" height="60" rx="20" fill="#1f1f4e"/>
+  <text x="540" y="237" font-family="sans-serif" font-size="24" fill="#4fc3f7" text-anchor="middle" font-weight="bold">Comandos de voz</text>
+  <rect x="70" y="260" width="940" height="2" fill="#2a2a5e"/>
+  <!-- Command entries -->
+  <text x="130" y="308" font-family="sans-serif" font-size="20" fill="#ff7043">⏱ Crear timer</text>
+  <text x="130" y="342" font-family="sans-serif" font-size="18" fill="#888">"timer de 15 minutos para la pasta"</text>
+  <text x="130" y="372" font-family="sans-serif" font-size="18" fill="#888">"poné 10 minutos para el arroz"</text>
+  <line x1="130" y1="395" x2="950" y2="395" stroke="#2a2a5e" stroke-width="0.5"/>
+  <text x="130" y="438" font-family="sans-serif" font-size="20" fill="#4fc3f7">⏸ Pausar</text>
+  <text x="130" y="472" font-family="sans-serif" font-size="18" fill="#888">"pausá el timer"</text>
+  <text x="130" y="502" font-family="sans-serif" font-size="18" fill="#888">"pausá el timer de la pasta"</text>
+  <line x1="130" y1="525" x2="950" y2="525" stroke="#2a2a5e" stroke-width="0.5"/>
+  <text x="130" y="568" font-family="sans-serif" font-size="20" fill="#66bb6a">▶ Reanudar</text>
+  <text x="130" y="602" font-family="sans-serif" font-size="18" fill="#888">"reanudá el timer"</text>
+  <text x="130" y="632" font-family="sans-serif" font-size="18" fill="#888">"reanudá el timer del horno"</text>
+  <line x1="130" y1="655" x2="950" y2="655" stroke="#2a2a5e" stroke-width="0.5"/>
+  <text x="130" y="698" font-family="sans-serif" font-size="20" fill="#ef5350">✕ Cancelar</text>
+  <text x="130" y="732" font-family="sans-serif" font-size="18" fill="#888">"cancelá el timer"</text>
+  <text x="130" y="762" font-family="sans-serif" font-size="18" fill="#888">"cancelá todos los timers"</text>
+  <line x1="130" y1="785" x2="950" y2="785" stroke="#2a2a5e" stroke-width="0.5"/>
+  <text x="130" y="828" font-family="sans-serif" font-size="20" fill="#ffa726">⏲ Extender</text>
+  <text x="130" y="862" font-family="sans-serif" font-size="18" fill="#888">"faltan 5 minutos" (agrega 5 min)</text>
+  <text x="130" y="892" font-family="sans-serif" font-size="18" fill="#888">"agregale 3 minutos al timer"</text>
+  <line x1="130" y1="915" x2="950" y2="915" stroke="#2a2a5e" stroke-width="0.5"/>
+  <text x="130" y="958" font-family="sans-serif" font-size="20" fill="#ab47bc">✏ Renombrar</text>
+  <text x="130" y="992" font-family="sans-serif" font-size="18" fill="#888">"poné el nombre del timer como arroz"</text>
+  <text x="130" y="1022" font-family="sans-serif" font-size="18" fill="#888">"llamalo pasta"</text>
+  <line x1="130" y1="1045" x2="950" y2="1045" stroke="#2a2a5e" stroke-width="0.5"/>
+  <text x="130" y="1088" font-family="sans-serif" font-size="20" fill="#26c6da">❓ Consultar</text>
+  <text x="130" y="1122" font-family="sans-serif" font-size="18" fill="#888">"cuánto tiempo queda"</text>
+  <text x="130" y="1152" font-family="sans-serif" font-size="18" fill="#888">"falta mucho para el timer del pollo"</text>
+  <line x1="130" y1="1175" x2="950" y2="1175" stroke="#2a2a5e" stroke-width="0.5"/>
+  <text x="130" y="1218" font-family="sans-serif" font-size="20" fill="#78909c">⚙ Consejos</text>
+  <text x="130" y="1252" font-family="sans-serif" font-size="18" fill="#888">Usá nombres cortos para los timers</text>
+  <text x="130" y="1282" font-family="sans-serif" font-size="18" fill="#888">Podés tener varios timers activos</text>
+  <text x="130" y="1312" font-family="sans-serif" font-size="18" fill="#888">Comandos disponibles en español e inglés</text>
+  <!-- Close button -->
+  <rect x="370" y="1480" width="340" height="60" rx="30" fill="#1f1f4e" stroke="#4fc3f7" stroke-width="1" stroke-opacity="0.3"/>
+  <text x="540" y="1518" font-family="sans-serif" font-size="22" fill="#4fc3f7" text-anchor="middle">Cerrar</text>
+</svg>

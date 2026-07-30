@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f0f23"/>
+      <stop offset="50%" stop-color="#1a1a3e"/>
+      <stop offset="100%" stop-color="#0f0f23"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4fc3f7"/>
+      <stop offset="100%" stop-color="#29b6f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#bg)"/>
+  <!-- Decorative circles -->
+  <circle cx="900" cy="80" r="200" fill="#4fc3f7" opacity="0.03"/>
+  <circle cx="150" cy="450" r="150" fill="#4fc3f7" opacity="0.03"/>
+  <!-- Phone mockup -->
+  <rect x="80" y="60" width="200" height="380" rx="24" fill="#1a1a3e" stroke="#2a2a5e" stroke-width="2"/>
+  <rect x="80" y="60" width="200" height="50" rx="24" fill="#131338"/>
+  <rect x="95" y="75" width="170" height="20" rx="4" fill="#1f1f4e"/>
+  <rect x="95" y="105" width="120" height="4" rx="2" fill="#4fc3f7" opacity="0.5"/>
+  <!-- Timer card 1 -->
+  <rect x="95" y="130" width="170" height="70" rx="12" fill="#1f1f4e" stroke="#2a2a5e" stroke-width="1"/>
+  <rect x="105" y="142" width="60" height="6" rx="3" fill="#4fc3f7"/>
+  <text x="105" y="162" font-family="sans-serif" font-size="11" fill="#888">Timer · 15:00</text>
+  <text x="105" y="180" font-family="sans-serif" font-size="9" fill="#555">Pasta</text>
+  <!-- Timer card 2 -->
+  <rect x="95" y="215" width="170" height="70" rx="12" fill="#1f1f4e" stroke="#2a2a5e" stroke-width="1"/>
+  <rect x="105" y="227" width="40" height="6" rx="3" fill="#ff7043"/>
+  <text x="105" y="247" font-family="sans-serif" font-size="11" fill="#888">Timer · 08:00</text>
+  <text x="105" y="265" font-family="sans-serif" font-size="9" fill="#555">Pollo</text>
+  <!-- Mic button -->
+  <circle cx="180" cy="380" r="28" fill="url(#accent)"/>
+  <circle cx="180" cy="380" r="22" fill="#131338"/>
+  <circle cx="180" cy="380" r="16" fill="url(#accent)"/>
+  <!-- Right side: Title and features -->
+  <text x="350" y="160" font-family="sans-serif" font-size="42" font-weight="bold" fill="#4fc3f7">Cuqui</text>
+  <text x="350" y="200" font-family="sans-serif" font-size="18" fill="#aaa">Asistente de cocina inteligente</text>
+  <line x1="350" y1="220" x2="520" y2="220" stroke="#4fc3f7" stroke-width="2" opacity="0.3"/>
+  <!-- Features -->
+  <circle cx="365" cy="260" r="6" fill="#4fc3f7" opacity="0.7"/>
+  <text x="385" y="265" font-family="sans-serif" font-size="14" fill="#ccc">Control por voz — sin ensuciar tu celular</text>
+  <circle cx="365" cy="295" r="6" fill="#4fc3f7" opacity="0.7"/>
+  <text x="385" y="300" font-family="sans-serif" font-size="14" fill="#ccc">Notificaciones push al finalizar</text>
+  <circle cx="365" cy="330" r="6" fill="#4fc3f7" opacity="0.7"/>
+  <text x="385" y="335" font-family="sans-serif" font-size="14" fill="#ccc">Sin registro, sin publicidad</text>
+  <circle cx="365" cy="365" r="6" fill="#4fc3f7" opacity="0.7"/>
+  <text x="385" y="370" font-family="sans-serif" font-size="14" fill="#ccc">Comandos en español e inglés</text>
+  <!-- Bottom tag -->
+  <rect x="350" y="410" width="280" height="36" rx="18" fill="#4fc3f7" opacity="0.1" stroke="#4fc3f7" stroke-width="1" stroke-opacity="0.3"/>
+  <text x="490" y="433" font-family="sans-serif" font-size="13" fill="#4fc3f7" text-anchor="middle">Disponible en Google Play</text>
+</svg>
