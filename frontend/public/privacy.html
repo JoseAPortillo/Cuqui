@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidad — Cuqui</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+    background: #0f0f23; color: #e0e0e0; line-height: 1.7; padding: 2rem 1rem;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { color: #4fc3f7; font-size: 1.6rem; margin-bottom: 0.25rem; }
+  .updated { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  h2 { color: #4fc3f7; font-size: 1.15rem; margin-top: 2rem; margin-bottom: 0.5rem; }
+  p, li { margin-bottom: 0.75rem; }
+  ul { padding-left: 1.5rem; margin-bottom: 1rem; }
+  li { margin-bottom: 0.4rem; }
+  a { color: #4fc3f7; }
+  .back { display: inline-block; margin-top: 2.5rem; color: #888; text-decoration: none; font-size: 0.9rem; }
+  .back:hover { color: #4fc3f7; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Política de Privacidad</h1>
+  <p class="updated">Última actualización: 30 de julio de 2026</p>
+
+  <h2>1. Responsable</h2>
+  <p>Esta aplicación es operada de forma independiente. No se recopila ni comparte información personal con fines comerciales.</p>
+
+  <h2>2. Datos que recopilamos</h2>
+  <ul>
+    <li><strong>Grabaciones de audio:</strong> Cuando usás el comando por voz, se envía una grabación al servidor para transcribirla a texto. El archivo de audio se elimina inmediatamente después de la transcripción.</li>
+    <li><strong>Identificador de sesión:</strong> Un UUID aleatorio generado en tu navegador, almacenado en <code>localStorage</code>. No está vinculado a tu identidad real.</li>
+    <li><strong>Nombres de temporizadores:</strong> Los textos que decís al crear un timer (ej. "pasta", "horno") se almacenan en la base de datos del servidor asociados a tu sesión.</li>
+    <li><strong>Clave de API (opcional):</strong> Si configurás una clave de OpenAI en los ajustes, se almacena en la base de datos del servidor asociada a tu sesión.</li>
+  </ul>
+
+  <h2>3. Cómo procesamos los datos</h2>
+  <p>El servidor utiliza el modelo <strong>faster-whisper</strong> de forma local para transcribir el audio. <strong>No se envía audio a servidores externos</strong> a menos que configures tu propia clave de API de OpenAI.</p>
+  <p>No se utiliza inteligencia artificial para analizar tus comandos más allá de la transcripción de voz y el parseo determinista por reglas.</p>
+
+  <h2>4. Almacenamiento</h2>
+  <p>Los datos se almacenan en una base de datos SQLite en el servidor. No se utiliza ningún servicio externo de base de datos ni almacenamiento en la nube.</p>
+  <p>Las claves de API se almacenan en texto plano en la base de datos (sin cifrado en reposo).</p>
+
+  <h2>5. Servicios de terceros</h2>
+  <ul>
+    <li><strong>OpenAI (opcional):</strong> Solo si proporcionás tu propia clave de API, los audios se envían a los servidores de OpenAI para su transcripción.</li>
+    <li><strong>Notificaciones push:</strong> Se utiliza el servicio de notificaciones push de tu navegador (FCM para Chrome, APNS para Safari) exclusivamente para notificarte cuando un temporizador finaliza.</li>
+    <li>No utilizamos analytics, crash reporting, ni SDKs de terceros.</li>
+  </ul>
+
+  <h2>6. Tus derechos</h2>
+  <p>Podés eliminar temporizadores individuales desde la interfaz de la app. Para eliminar todos tus datos asociados a una sesión, contactanos a la dirección de correo electrónico indicada abajo.</p>
+
+  <h2>7. Contacto</h2>
+  <p>Si tenés preguntas sobre esta política, podés escribir a: <strong>cuqui.app@ejemplo.com</strong></p>
+
+  <a class="back" href="/">&larr; Volver a la aplicación</a>
+</main>
+</body>
+</html>

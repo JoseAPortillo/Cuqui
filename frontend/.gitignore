@@ -26,3 +26,6 @@ dist-ssr
 # Capacitor
 android/
 ios/
+
+# Keystore (Play Store signing key)
+*.keystore
